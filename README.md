@@ -76,8 +76,9 @@ flutter test
 flutter run -d windows
 ```
 
-Publishing a GitHub Release runs the Windows workflow, which builds and attaches
-the setup installer, portable ZIP, and PowerShell installer.
+Push a version tag, such as `v1.0.0`, to create a GitHub Release. The Windows
+workflow builds and attaches the setup installer, portable ZIP, and PowerShell
+installer. Publishing a release manually also runs the workflow.
 
 ## License
 

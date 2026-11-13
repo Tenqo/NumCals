@@ -1,6 +1,9 @@
-name: Build SysCalculator Windows release
+name: Build and publish SysCalculator Windows release
 
 "on":
+  push:
+    tags:
+      - "v*"
   release:
     types: [published]
 
@@ -27,8 +30,47 @@ jobs:
         shell: pwsh
         run: .\tooling\windows\Build-WindowsRelease.ps1
 
-      - name: Upload packages to GitHub release
+      - name: Create release from version tag
+        if: github.event_name == 'push'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$env:GITHUB_REF_NAME" .\dist\SysCalculator-Setup.exe .\dist\SysCalculator-portable.zip .\dist\Install-LatestRelease.ps1 --clobber
+        run: |
+          $manifest = Get-Content pubspec.yaml -Raw
+          $versionMatch = [regex]::Match($manifest, '(?m)^version:\s*(\d+\.\d+\.\d+)')
+          if (-not $versionMatch.Success) {
+            throw 'Could not read the app version from pubspec.yaml.'
+          }
+
+          $version = $versionMatch.Groups[1].Value
+          $displayVersion = $version -replace '\.0$', ''
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -ne "v$version") {
+            throw "Release tag $tag does not match app version v$version."
+          }
+
+          $releaseArguments = @(
+            $tag,
+            '.\dist\SysCalculator-Setup.exe',
+            '.\dist\SysCalculator-portable.zip',
+            '.\dist\Install-LatestRelease.ps1',
+            '--title',
+            "SysCalculator $displayVersion",
+            '--notes-file',
+            '.github/release-notes.md'
+          )
+          gh release create @releaseArguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not publish release $tag."
+          }
+
+      - name: Upload packages to existing release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$env:GITHUB_REF_NAME" .\dist\SysCalculator-Setup.exe .\dist\SysCalculator-portable.zip .\dist\Install-LatestRelease.ps1 --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not upload packages to release $env:GITHUB_REF_NAME."
+          }
