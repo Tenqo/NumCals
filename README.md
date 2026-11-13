@@ -79,39 +79,6 @@ flutter run -d windows
 Publishing a GitHub Release runs the Windows workflow, which builds and attaches
 the setup installer, portable ZIP, and PowerShell installer.
 
-## Project tree
-
-```text
-SysCalculator/
-├── .github/
-│   └── workflows/
-│       └── release-windows.yml
-├── lib/
-│   ├── calculator_engine.dart
-│   ├── currency_service.dart
-│   └── main.dart
-├── packaging/
-│   └── windows/
-│       └── SysCalculator-Setup.iss
-├── test/
-│   ├── calculator_app_widget_test.dart
-│   └── calculator_engine_test.dart
-├── tooling/
-│   └── windows/
-│       ├── Build-WindowsRelease.ps1
-│       ├── Convert-AppIconToIco.ps1
-│       └── Install-LatestRelease.ps1
-├── windows/
-│   └── runner/
-├── .gitignore
-├── .metadata
-├── analysis_options.yaml
-├── LICENSE
-├── pubspec.lock
-├── pubspec.yaml
-└── README.md
-```
-
 ## License
 
 Licensed under the GNU General Public License v3.0 only.
