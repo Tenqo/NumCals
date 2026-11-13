@@ -7,7 +7,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
   <img src="https://img.shields.io/badge/Built_with-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Built with Flutter">
-  <img src="https://img.shields.io/badge/Version-1.0-2E8B57?style=for-the-badge" alt="Version 1.0">
+  <img src="https://img.shields.io/badge/Version-1.0.1-2E8B57?style=for-the-badge" alt="Version 1.0.1">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge" alt="GNU GPL v3.0"></a>
   <a href="https://github.com/Tenqo/SysCalculator/actions/workflows/release-windows.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/Tenqo/SysCalculator/release-windows.yml?branch=main&amp;style=for-the-badge&amp;label=Windows%20release&amp;logo=githubactions&amp;logoColor=white" alt="Windows release workflow">
@@ -51,12 +51,14 @@ app, with keyboard-friendly controls and a choice of light or dark appearance.
 Open the [latest GitHub release](https://github.com/Tenqo/SysCalculator/releases/latest)
 and choose the option that suits you:
 
-- **Setup:** download `SysCalculator-Setup.exe` and run it. It installs for your
-  Windows account and creates a desktop shortcut; administrator access is not
-  required.
+- **Setup wizard:** download `SysCalculator-Setup.exe` and run it. This opens
+  the graphical installation media, where you can choose the install folder
+  and desktop shortcut.
 - **Portable:** download `SysCalculator-portable.zip`, extract it, and run
   `SysCalculator.exe`. Keep the extracted folder together.
-- **PowerShell installer:** download and run the latest setup automatically:
+- **PowerShell-only install:** run the PowerShell installer below. It asks for
+  the install folder and shortcut preference, then installs without opening
+  the graphical installation media.
 
   ```powershell
   $repo = 'Tenqo/SysCalculator'
@@ -64,6 +66,9 @@ and choose the option that suits you:
   Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest/download/Install-LatestRelease.ps1" -OutFile $installer
   powershell -NoProfile -ExecutionPolicy Bypass -File $installer -Repository $repo
   ```
+
+The PowerShell installer verifies the download, supports retrying a failed
+install, and keeps PowerShell open for update, upgrade, and reinstall commands.
 
 ## Build from source
 

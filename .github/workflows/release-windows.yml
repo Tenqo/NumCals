@@ -26,6 +26,10 @@ jobs:
         shell: pwsh
         run: choco install innosetup --no-progress -y
 
+      - name: Test PowerShell installer
+        shell: pwsh
+        run: .\test\windows_installer_tests.ps1
+
       - name: Build Windows packages
         shell: pwsh
         run: .\tooling\windows\Build-WindowsRelease.ps1
