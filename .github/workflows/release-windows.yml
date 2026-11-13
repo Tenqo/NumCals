@@ -1,4 +1,4 @@
-name: Build Windows release
+name: Build SysCalculator Windows release
 
 "on":
   release:
@@ -31,4 +31,4 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$env:GITHUB_REF_NAME" .\dist\FlCalculator-Setup.exe .\dist\FlCalculator-portable.zip .\dist\Install-LatestRelease.ps1 --clobber
+        run: gh release upload "$env:GITHUB_REF_NAME" .\dist\SysCalculator-Setup.exe .\dist\SysCalculator-portable.zip .\dist\Install-LatestRelease.ps1 --clobber

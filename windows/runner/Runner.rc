@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "flcalculator" "\0"
+            VALUE "CompanyName", "Tenqo Digital" "\0"
+            VALUE "FileDescription", "SysCalculator" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "flcalculator" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "flcalculator.exe" "\0"
-            VALUE "ProductName", "flcalculator" "\0"
+            VALUE "InternalName", "SysCalculator" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Tenqo Digital. All rights reserved." "\0"
+            VALUE "OriginalFilename", "SysCalculator.exe" "\0"
+            VALUE "ProductName", "SysCalculator" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -55,7 +55,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Calculator',
+      title: 'SysCalculator',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
@@ -87,7 +87,7 @@ class CalculatorPage extends StatefulWidget {
 
 class _CalculatorPageState extends State<CalculatorPage> {
   static const _engine = CalculatorEngine();
-  static const _windowChannel = MethodChannel('flcalculator/window');
+  static const _windowChannel = MethodChannel('syscalculator/window');
 
   late final CurrencyService _currencyService =
       widget.currencyService ?? const CurrencyService();

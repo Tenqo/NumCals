@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flcalculator/currency_service.dart';
-import 'package:flcalculator/main.dart';
+import 'package:sys_calculator/currency_service.dart';
+import 'package:sys_calculator/main.dart';
 
 void main() {
   Future<void> tapKeys(WidgetTester tester, List<String> keys) async {
@@ -223,7 +223,7 @@ void main() {
 
   testWidgets('Frankfurter source link opens its website', (tester) async {
     final calls = <MethodCall>[];
-    const channel = MethodChannel('flcalculator/window');
+    const channel = MethodChannel('syscalculator/window');
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -360,7 +360,7 @@ void main() {
     tester,
   ) async {
     final calls = <MethodCall>[];
-    const channel = MethodChannel('flcalculator/window');
+    const channel = MethodChannel('syscalculator/window');
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -399,7 +399,7 @@ void main() {
     'settings diagnostics check the calculator and currency service',
     (tester) async {
       final calls = <MethodCall>[];
-      const channel = MethodChannel('flcalculator/window');
+      const channel = MethodChannel('syscalculator/window');
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       messenger.setMockMethodCallHandler(channel, (call) async {

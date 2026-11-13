@@ -3,8 +3,8 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $releasePath = Join-Path $projectRoot 'build\windows\x64\runner\Release'
 $outputPath = Join-Path $projectRoot 'dist'
-$portablePath = Join-Path $outputPath 'FlCalculator-portable.zip'
-$installerScript = Join-Path $projectRoot 'packaging\windows\FlCalculator-Setup.iss'
+$portablePath = Join-Path $outputPath 'SysCalculator-portable.zip'
+$installerScript = Join-Path $projectRoot 'packaging\windows\SysCalculator-Setup.iss'
 $releaseInstallScript = Join-Path $PSScriptRoot 'Install-LatestRelease.ps1'
 
 Push-Location $projectRoot
@@ -19,7 +19,7 @@ try {
         throw 'Windows release build failed.'
     }
 
-    if (-not (Test-Path -LiteralPath (Join-Path $releasePath 'flcalculator.exe'))) {
+    if (-not (Test-Path -LiteralPath (Join-Path $releasePath 'SysCalculator.exe'))) {
         throw "The Windows app was not found at $releasePath."
     }
 
@@ -51,17 +51,17 @@ try {
         "/DAppSource=$releasePath",
         "/DAppVersion=$($versionMatch.Matches[0].Groups[1].Value)",
         "/O$outputPath",
-        '/FFlCalculator-Setup',
+        '/FSysCalculator-Setup',
         $installerScript
     )
     & $compilerPath @compilerArguments
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $outputPath 'FlCalculator-Setup.exe') -PathType Leaf)) {
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $outputPath 'SysCalculator-Setup.exe') -PathType Leaf)) {
         throw 'Inno Setup could not create the Windows setup executable.'
     }
 
     Copy-Item -LiteralPath $releaseInstallScript -Destination $outputPath -Force
 
-    Write-Output "Windows setup created: $(Join-Path $outputPath 'FlCalculator-Setup.exe')"
+    Write-Output "Windows setup created: $(Join-Path $outputPath 'SysCalculator-Setup.exe')"
     Write-Output "Portable app created: $portablePath"
     Write-Output "Release installer created: $(Join-Path $outputPath 'Install-LatestRelease.ps1')"
 }

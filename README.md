@@ -1,6 +1,6 @@
-# FlCalculator
+# SysCalculator
 
-Keyboard-friendly Windows calculator built with Flutter.
+Version 1.0 | Keyboard-friendly Windows calculator built with Flutter.
 
 ## Features
 
@@ -23,10 +23,11 @@ provides rates for 219 currencies and 39 other assets. See
 
 ### 1. Normal install (recommended)
 
-After a release is published, download `FlCalculator-Setup.exe` from the
-project's GitHub Releases page, then double-click it and follow the setup
-prompts. It installs for your Windows account and creates a desktop shortcut.
-No administrator access or extra software is needed.
+After a release is published, open the [latest release page on
+GitHub](https://github.com/Tenqo/SysCalculator/releases/latest). Download
+`SysCalculator-Setup.exe`, then double-click it and follow the setup prompts.
+It installs for your Windows account and creates a desktop shortcut. No
+administrator access or extra software is needed.
 
 ### 2. Install the latest version from GitHub with PowerShell
 
@@ -46,45 +47,33 @@ needed.
 
 ### 3. Run the downloaded setup with PowerShell
 
-If `FlCalculator-Setup.exe` is already downloaded, open PowerShell in its
+If `SysCalculator-Setup.exe` is already downloaded, open PowerShell in its
 folder and run:
 
 ```powershell
-Start-Process -FilePath .\FlCalculator-Setup.exe -Wait
+Start-Process -FilePath .\SysCalculator-Setup.exe -Wait
 ```
 
 ### Portable version
 
-Download `FlCalculator-portable.zip`, extract it to any folder, and double-click
-`flcalculator.exe`. Keep the extracted folder together; no installation is
+Download `SysCalculator-portable.zip`, extract it to any folder, and double-click
+`SysCalculator.exe`. Keep the extracted folder together; no installation is
 needed.
 
-## For maintainers
+## Quality-of-life features
 
-Publishing a GitHub Release automatically builds and attaches the Windows
-setup executable, portable ZIP, and PowerShell GitHub installer. End users do
-not need to build the app or install development tools.
+Small details make everyday calculations more convenient:
 
-To run locally, install Flutter stable and the Visual Studio **Desktop
-development with C++** workload, then run:
-
-```powershell
-flutter pub get
-flutter test
-flutter run -d windows
-```
-
-## Project structure
-
-- `lib/main.dart` — application UI, modes, settings, and calculation history.
-- `lib/calculator_engine.dart` — expression parsing and scientific calculations.
-- `lib/currency_service.dart` — currency list and reference-rate requests.
-- `test/calculator_engine_test.dart` — calculator engine tests.
-- `test/calculator_app_widget_test.dart` — app UI and interaction tests.
-- `windows/runner/` — native Windows window setup and app icon resources.
-- `tooling/windows/` — Windows release build, icon conversion, and update installer.
-- `packaging/windows/` — Windows setup installer definition.
-- `.github/workflows/release-windows.yml` — builds and uploads release packages.
+- **Keyboard-friendly input:** enter calculations with the keyboard or number
+  pad, and use shortcuts for common actions.
+- **Recent calculations:** revisit or reuse the last ten calculations during
+  the current session.
+- **Quick result copying:** copy the displayed answer without selecting it.
+- **Stay on top:** keep the calculator visible while working in another app.
+- **Comfortable appearance:** follow the Windows theme or choose System, Light,
+  or Dark mode. Light mode uses a warm beige palette.
+- **Built-in diagnostics:** check the calculator and currency service when
+  something does not work as expected.
 
 ## License
 

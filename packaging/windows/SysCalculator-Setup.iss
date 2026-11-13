@@ -8,19 +8,19 @@
 
 [Setup]
 AppId={{A63F494F-0ED4-4B1D-9F1A-28F8407C6A7D}
-AppName=FlCalculator
+AppName=SysCalculator
 AppVersion={#AppVersion}
-AppPublisher=FlCalculator
-DefaultDirName={localappdata}\Programs\FlCalculator
-DefaultGroupName=FlCalculator
+AppPublisher=Tenqo Digital
+DefaultDirName={localappdata}\Programs\SysCalculator
+DefaultGroupName=SysCalculator
 PrivilegesRequired=lowest
 OutputDir=..\..\dist
-OutputBaseFilename=FlCalculator-Setup
+OutputBaseFilename=SysCalculator-Setup
 ArchitecturesInstallIn64BitMode=x64
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\flcalculator.exe
+UninstallDisplayIcon={app}\SysCalculator.exe
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"
@@ -29,8 +29,8 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "{#AppSource}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\FlCalculator"; Filename: "{app}\flcalculator.exe"
-Name: "{autodesktop}\FlCalculator"; Filename: "{app}\flcalculator.exe"; Tasks: desktopicon
+Name: "{autoprograms}\SysCalculator"; Filename: "{app}\SysCalculator.exe"
+Name: "{autodesktop}\SysCalculator"; Filename: "{app}\SysCalculator.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\flcalculator.exe"; Description: "Launch FlCalculator"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\SysCalculator.exe"; Description: "Launch SysCalculator"; Flags: nowait postinstall skipifsilent
