@@ -18,12 +18,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Check out Windows test branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2.23.0
         with:
-          channel: stable
+          flutter-version: 3.50.0
 
       - name: Install Inno Setup
         shell: pwsh
@@ -35,7 +35,7 @@ jobs:
 
       - name: Analyze Flutter project
         shell: pwsh
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze
 
       - name: Test Flutter project
         shell: pwsh
@@ -70,7 +70,7 @@ jobs:
           }
 
       - name: Store test build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: SysCalculator-Windows_Tests-${{ github.sha }}
           path: |

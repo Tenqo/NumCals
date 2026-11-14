@@ -141,19 +141,23 @@ function Invoke-BuildScriptSelfTest {
                 'Process'
             )
             $partialSigningRejected = $false
+            $partialSigningError = $null
             try {
                 [void](Initialize-ReleaseSigning `
                     -CertificateBase64 $null `
                     -SecurePassword $null)
             } catch {
-                $partialSigningRejected = $_.Exception.Message -like '*Configure both*'
+                $partialSigningError = $_.Exception.Message
+                $partialSigningRejected = $partialSigningError -like '*Configure both*'
             }
-            if (-not $partialSigningRejected -or
-                $null -ne [Environment]::GetEnvironmentVariable(
+            if (-not $partialSigningRejected) {
+                throw "Partial signing configuration was not rejected as expected: $partialSigningError"
+            }
+            if (-not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable(
                     'WINDOWS_SIGNING_CERTIFICATE_PASSWORD',
                     'Process'
-                )) {
-                throw 'Partial signing configuration was not rejected or its environment password was not cleared.'
+                ))) {
+                throw 'Partial signing configuration did not clear its environment password.'
             }
         } finally {
             $SigningCertificateBase64 = $originalCertificateBase64
@@ -374,7 +378,7 @@ try {
     $applicationExecutable = Join-Path $releasePath 'SysCalculator.exe'
     $applicationInformation = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($applicationExecutable)
     if ($applicationInformation.ProductName -ine 'SysCalculator' -or
-        $applicationInformation.FileVersion -notmatch "^$([regex]::Escape($version))(\.|$)") {
+        $applicationInformation.FileVersion -notmatch "^$([regex]::Escape($version))(\+\d+|\.\d+)?$") {
         throw "The built SysCalculator.exe version does not match pubspec.yaml version $version."
     }
 
