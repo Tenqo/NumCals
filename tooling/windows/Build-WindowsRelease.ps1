@@ -142,7 +142,9 @@ function Invoke-BuildScriptSelfTest {
             )
             $partialSigningRejected = $false
             try {
-                [void](Initialize-ReleaseSigning)
+                [void](Initialize-ReleaseSigning `
+                    -CertificateBase64 $null `
+                    -SecurePassword $null)
             } catch {
                 $partialSigningRejected = $_.Exception.Message -like '*Configure both*'
             }
@@ -177,8 +179,14 @@ function Invoke-BuildScriptSelfTest {
 }
 
 function Initialize-ReleaseSigning {
-    $hasCertificate = -not [string]::IsNullOrWhiteSpace($SigningCertificateBase64)
-    $securePassword = $SigningCertificatePassword
+    param(
+        [string]$CertificateBase64 = $SigningCertificateBase64,
+        [System.Security.SecureString]$SecurePassword = $SigningCertificatePassword,
+        [string]$TimestampUrl = $TimestampServer
+    )
+
+    $hasCertificate = -not [string]::IsNullOrWhiteSpace($CertificateBase64)
+    $securePassword = $SecurePassword
     $passwordText = [Environment]::GetEnvironmentVariable(
         'WINDOWS_SIGNING_CERTIFICATE_PASSWORD',
         'Process'
@@ -216,7 +224,7 @@ function Initialize-ReleaseSigning {
     }
 
     $timestampUri = $null
-    if (-not [Uri]::TryCreate($TimestampServer, [UriKind]::Absolute, [ref]$timestampUri) -or
+    if (-not [Uri]::TryCreate($TimestampUrl, [UriKind]::Absolute, [ref]$timestampUri) -or
         $timestampUri.Scheme -ne 'https') {
         if ($null -ne $securePassword) {
             $securePassword.Dispose()
@@ -234,7 +242,7 @@ function Initialize-ReleaseSigning {
     try {
         New-Item -ItemType Directory -Path $signingDirectory | Out-Null
         try {
-            $certificateBytes = [Convert]::FromBase64String($SigningCertificateBase64)
+            $certificateBytes = [Convert]::FromBase64String($CertificateBase64)
         } catch {
             throw 'WINDOWS_SIGNING_CERTIFICATE_PFX is not valid base64.'
         }
@@ -287,7 +295,7 @@ function Initialize-ReleaseSigning {
             Certificate = $importedCertificate
             ImportedThumbprints = $newImportedThumbprints
             SignTool = $signTool
-            TimestampUrl = $TimestampServer
+            TimestampUrl = $TimestampUrl
         }
     } catch {
         foreach ($thumbprint in $newImportedThumbprints) {
