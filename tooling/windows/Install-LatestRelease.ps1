@@ -1066,7 +1066,14 @@ Remove-Item -LiteralPath (Join-Path $scriptDirectory 'SysCalculator.cmd') -Force
 Remove-Item -LiteralPath $scriptPath -Force
 if (Test-Path -LiteralPath $scriptPath) { exit 9 }
 '@)
-        $selfDeleteProcess = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') `
+$powerShellExecutable = Join-Path $PSHOME 'pwsh.exe'
+if (-not (Test-Path -LiteralPath $powerShellExecutable -PathType Leaf)) {
+    $powerShellExecutable = Join-Path $PSHOME 'powershell.exe'
+}
+if (-not (Test-Path -LiteralPath $powerShellExecutable -PathType Leaf)) {
+    throw "Could not locate the current PowerShell executable under $PSHOME."
+}
+$selfDeleteProcess = Start-Process -FilePath $powerShellExecutable `
             -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $selfDeleteScript)) `
             -Wait -PassThru -WindowStyle Hidden
         if ($selfDeleteProcess.ExitCode -ne 0 -or

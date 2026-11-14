@@ -76,6 +76,9 @@ been built or signed.
   subprocess check that a running copy can remove its own script and launcher.
 - The initial Windows cloud run successfully provisioned the Windows runner,
   installed Flutter and Inno Setup, and resolved Flutter dependencies.
+- On the follow-up Windows run, `flutter analyze --no-fatal-infos` succeeded
+  with two informational deprecation notices still visible, and all 27 Flutter
+  tests passed.
 - The v1.0.1 Stage 3 audit independently downloaded all three original assets
   and confirmed their SHA-256 values against GitHub release metadata.
 
@@ -93,12 +96,19 @@ been built or signed.
   in `lib/main.dart` and `test/calculator_app_widget_test.dart`; tests, installer
   checks, and package creation were skipped. The analyzer command was updated to
   keep infos visible but non-fatal; warnings and errors remain fatal. A rerun
-  has not yet been observed.
+  passed analysis and Flutter tests, but failed in the Windows installer
+  self-test because it looked for `powershell.exe` inside PowerShell 7's
+  `$PSHOME`. The self-test now detects `pwsh.exe` first and falls back to
+  `powershell.exe`.
+- GitHub Actions run [43591187626](https://github.com/Tenqo/SysCalculator/actions/runs/43591187626)
+  passed analysis and all 27 Flutter tests, then failed at the PowerShell
+  installer self-test due to the executable-path issue above. Release helper
+  tests, packaging, checksum verification, and artifact upload were skipped.
 
 ### Not performed
 
-- The cloud analyzer retry, Flutter test suite, installer checks, and Windows
-  package build remain unverified until the updated workflow completes.
+- The updated installer self-test and package build remain unverified in cloud
+  until the next Windows workflow run completes.
 - During the host-test attempt, `flutter pub get` and `flutter --version`
   stalled without output. Inspection then hit a sandbox access denial for
   `C:\src\flutter\packages\flutter_tools\.dart_tool\package_config.json` and
