@@ -7,7 +7,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
   <img src="https://img.shields.io/badge/Built_with-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Built with Flutter">
-  <img src="https://img.shields.io/badge/Version-1.0.1-2E8B57?style=for-the-badge" alt="Version 1.0.1">
+  <img src="https://img.shields.io/badge/Version-1.0.2-2E8B57?style=for-the-badge" alt="Version 1.0.2">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge" alt="GNU GPL v3.0"></a>
   <a href="https://github.com/Tenqo/SysCalculator/actions/workflows/release-windows.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/Tenqo/SysCalculator/release-windows.yml?branch=main&amp;style=for-the-badge&amp;label=Windows%20release&amp;logo=githubactions&amp;logoColor=white" alt="Windows release workflow">
@@ -17,8 +17,9 @@
 <p align="center">
   <a href="#features">Features</a> ·
   <a href="#download">Download</a> ·
+  <a href="#updates-and-uninstall">Updates and uninstall</a> ·
+  <a href="#verify-a-download">Verify a download</a> ·
   <a href="#build-from-source">Build from source</a> ·
-  <a href="#project-tree">Project tree</a> ·
   <a href="#license">License</a>
 </p>
 
@@ -58,17 +59,63 @@ and choose the option that suits you:
   `SysCalculator.exe`. Keep the extracted folder together.
 - **PowerShell-only install:** run the PowerShell installer below. It asks for
   the install folder and shortcut preference, then installs without opening
-  the graphical installation media.
+  the graphical installation media. The command downloads and verifies the
+  installer script before running it.
 
   ```powershell
   $repo = 'Tenqo/SysCalculator'
+  $release = "https://github.com/$repo/releases/latest/download"
   $installer = Join-Path $env:TEMP 'Install-LatestRelease.ps1'
-  Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest/download/Install-LatestRelease.ps1" -OutFile $installer
+  $checksums = Join-Path $env:TEMP 'SHA256SUMS.txt'
+  Invoke-WebRequest -UseBasicParsing -Uri "$release/SHA256SUMS.txt" -OutFile $checksums
+  Invoke-WebRequest -UseBasicParsing -Uri "$release/Install-LatestRelease.ps1" -OutFile $installer
+  $entry = Get-Content $checksums | Where-Object { $_ -match '\s+Install-LatestRelease\.ps1$' }
+  if (-not $entry) { throw 'Installer checksum is missing from SHA256SUMS.txt.' }
+  $expected = ($entry -split '\s+', 2)[0]
+  $actual = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
+  if ($actual -ine $expected) { throw 'Installer checksum mismatch; the script was not run.' }
   powershell -NoProfile -ExecutionPolicy Bypass -File $installer -Repository $repo
   ```
 
-The PowerShell installer verifies the download, supports retrying a failed
-install, and keeps PowerShell open for update, upgrade, and reinstall commands.
+The PowerShell installer checks the downloaded setup file's size and SHA-256
+before running it. It installs updates automatically when a newer release is
+available and adds a `SysCalculator` command to the current user's `PATH`.
+Open a new PowerShell window after installation to use the commands below.
+
+## Updates and uninstall
+
+```powershell
+SysCalculator update
+SysCalculator upgrade
+SysCalculator remove
+```
+
+`update` installs only when a newer release is available. `upgrade` reinstalls
+the latest release, but will not replace an installed version that is newer or
+cannot be identified. `remove` asks for confirmation and uses the app's
+uninstaller; it does not recursively delete the installation folder or unrelated
+user files. The portable version is updated by downloading and extracting the
+latest ZIP.
+
+## Verify a download
+
+Download `SHA256SUMS.txt` with the release files, then run this command in the
+folder containing the files:
+
+```powershell
+Get-Content .\SHA256SUMS.txt | ForEach-Object {
+  $expected, $name = $_ -split '\s+', 2
+  $actual = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash
+  if ($actual -ine $expected) { throw "Checksum mismatch: $name" }
+  "Verified $name"
+}
+```
+
+This detects incomplete or changed downloads when the checksum file is
+unchanged. It does not independently authenticate the publisher. Release EXEs
+published by GitHub Actions are unsigned. GPL-3.0 describes the source license;
+it does not authenticate the publisher or make a self-signed certificate
+trusted by Windows.
 
 ## Build from source
 
@@ -81,9 +128,19 @@ flutter test
 flutter run -d windows
 ```
 
-Push a version tag, such as `v1.0.0`, to create a GitHub Release. The Windows
-workflow builds and attaches the setup installer, portable ZIP, and PowerShell
-installer. Publishing a release manually also runs the workflow.
+Run `flutter pub get`, `flutter test`, and
+`.\test\windows_installer_tests.ps1` before preparing a build. To build the
+Windows packages locally, install Inno Setup 6 and run:
+
+```powershell
+.\tooling\windows\Build-WindowsRelease.ps1
+```
+
+The script refuses to overwrite existing files in `dist`. The release workflow
+validates that the pushed tag matches `pubspec.yaml`, runs installer tests, and
+then builds the setup EXE, portable ZIP, PowerShell installer, and checksum
+manifest. Pushing a version tag starts the release workflow; do not push a tag
+until the release has been reviewed.
 
 ## License
 

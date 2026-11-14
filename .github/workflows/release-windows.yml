@@ -4,8 +4,6 @@ name: Build and publish SysCalculator Windows release
   push:
     tags:
       - "v*"
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -16,6 +14,8 @@ jobs:
     steps:
       - name: Check out release
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -26,16 +26,54 @@ jobs:
         shell: pwsh
         run: choco install innosetup --no-progress -y
 
+      - name: Validate tagged source
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -ne 'tag') {
+            throw 'Windows releases must be built from a version tag.'
+          }
+
+          $manifest = Get-Content pubspec.yaml -Raw
+          $versionMatch = [regex]::Match($manifest, '(?m)^version:\s*(\d+\.\d+\.\d+)')
+          if (-not $versionMatch.Success) {
+            throw 'Could not read the app version from pubspec.yaml.'
+          }
+
+          $expectedTag = "v$($versionMatch.Groups[1].Value)"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Release tag $env:GITHUB_REF_NAME does not match app version $expectedTag."
+          }
+
+          $tagCommit = (& git rev-parse --verify "$($env:GITHUB_REF_NAME)^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not resolve release tag $env:GITHUB_REF_NAME."
+          }
+          $checkoutCommit = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $checkoutCommit -ne $tagCommit) {
+            throw 'The checked-out source does not match the release tag commit.'
+          }
+
+      - name: Resolve Flutter dependencies
+        shell: pwsh
+        run: flutter pub get
+
+      - name: Test Flutter application
+        shell: pwsh
+        run: flutter test
+
       - name: Test PowerShell installer
         shell: pwsh
         run: .\test\windows_installer_tests.ps1
+
+      - name: Test release artifact helpers
+        shell: pwsh
+        run: .\tooling\windows\Build-WindowsRelease.ps1 -SelfTest
 
       - name: Build Windows packages
         shell: pwsh
         run: .\tooling\windows\Build-WindowsRelease.ps1
 
       - name: Create release from version tag
-        if: github.event_name == 'push'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,23 +96,14 @@ jobs:
             '.\dist\SysCalculator-Setup.exe',
             '.\dist\SysCalculator-portable.zip',
             '.\dist\Install-LatestRelease.ps1',
+            '.\dist\SHA256SUMS.txt',
             '--title',
             "SysCalculator $displayVersion",
             '--notes-file',
             '.github/release-notes.md'
           )
+          $releaseArguments = @('--verify-tag') + $releaseArguments
           gh release create @releaseArguments
           if ($LASTEXITCODE -ne 0) {
             throw "Could not publish release $tag."
-          }
-
-      - name: Upload packages to existing release
-        if: github.event_name == 'release'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "$env:GITHUB_REF_NAME" .\dist\SysCalculator-Setup.exe .\dist\SysCalculator-portable.zip .\dist\Install-LatestRelease.ps1 --clobber
-          if ($LASTEXITCODE -ne 0) {
-            throw "Could not upload packages to release $env:GITHUB_REF_NAME."
           }
