@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
-import 'calculator_engine.dart';
-import 'currency_service.dart';
+import 'calculator/calculator_engine.dart';
+import 'services/currency_service.dart';
 
 void main() {
   runApp(const CalculatorApp());
@@ -55,7 +55,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SysCalculator',
+      title: 'NumCals',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
@@ -87,7 +87,7 @@ class CalculatorPage extends StatefulWidget {
 
 class _CalculatorPageState extends State<CalculatorPage> {
   static const _engine = CalculatorEngine();
-  static const _windowChannel = MethodChannel('syscalculator/window');
+  static const _windowChannel = MethodChannel('numcals/window');
 
   late final CurrencyService _currencyService =
       widget.currencyService ?? const CurrencyService();
@@ -558,9 +558,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
     }
     try {
       final amount = _engine.evaluate(_expression, useDegrees: _useDegrees);
+      final convertedAmount = amount * rate.rate;
+      if (!convertedAmount.isFinite) {
+        _showCalculationError();
+        return;
+      }
       setState(() {
         _convertedFromAmount = _formatNumber(amount);
-        _display = _formatNumber(amount * rate.rate);
+        _display = _formatNumber(convertedAmount);
         _justEvaluated = true;
         _hasError = false;
         _addHistoryEntry(

@@ -142,6 +142,22 @@ class _ExpressionParser {
     if (!foundDigit) {
       throw const FormatException('Enter a valid number.');
     }
+
+    if (_position < expression.length &&
+        (expression[_position] == 'e' || expression[_position] == 'E')) {
+      var exponentEnd = _position + 1;
+      if (exponentEnd < expression.length &&
+          (expression[exponentEnd] == '+' || expression[exponentEnd] == '-')) {
+        exponentEnd++;
+      }
+      final exponentDigitsStart = exponentEnd;
+      while (exponentEnd < expression.length &&
+          _isDigit(expression[exponentEnd])) {
+        exponentEnd++;
+      }
+      if (exponentEnd > exponentDigitsStart) _position = exponentEnd;
+    }
+
     return double.parse(expression.substring(start, _position));
   }
 

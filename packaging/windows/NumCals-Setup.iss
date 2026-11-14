@@ -8,19 +8,19 @@
 
 [Setup]
 AppId={{A63F494F-0ED4-4B1D-9F1A-28F8407C6A7D}
-AppName=SysCalculator
+AppName=NumCals
 AppVersion={#AppVersion}
 AppPublisher=Tenqo Digital
-DefaultDirName={localappdata}\Programs\SysCalculator
-DefaultGroupName=SysCalculator
+DefaultDirName={localappdata}\Programs\NumCals
+DefaultGroupName=NumCals
 PrivilegesRequired=lowest
 OutputDir=..\..\dist
-OutputBaseFilename=SysCalculator-Setup
+OutputBaseFilename=NumCals-Setup
 ArchitecturesInstallIn64BitMode=x64
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\SysCalculator.exe
+UninstallDisplayIcon={app}\NumCals.exe
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
@@ -29,8 +29,8 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "{#AppSource}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\SysCalculator"; Filename: "{app}\SysCalculator.exe"
-Name: "{autodesktop}\SysCalculator"; Filename: "{app}\SysCalculator.exe"; Tasks: desktopicon
+Name: "{autoprograms}\NumCals"; Filename: "{app}\NumCals.exe"
+Name: "{autodesktop}\NumCals"; Filename: "{app}\NumCals.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\SysCalculator.exe"; Description: "Launch SysCalculator"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\NumCals.exe"; Description: "Launch NumCals"; Flags: nowait postinstall skipifsilent

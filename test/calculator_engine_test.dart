@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:sys_calculator/calculator_engine.dart';
+import 'package:numcals/calculator/calculator_engine.dart';
 
 void main() {
   const engine = CalculatorEngine();
@@ -20,6 +20,12 @@ void main() {
   test('supports constants and implicit multiplication', () {
     expect(engine.evaluate('2π'), closeTo(2 * 3.141592653589793, 1e-10));
     expect(engine.evaluate('5!'), 120);
+  });
+
+  test('supports scientific notation without changing the e constant', () {
+    expect(engine.evaluate('1e3 + 2'), 1002);
+    expect(engine.evaluate('1.25E-3'), closeTo(0.00125, 1e-12));
+    expect(engine.evaluate('2e'), closeTo(2 * 2.718281828459045, 1e-10));
   });
 
   test('respects radians mode', () {

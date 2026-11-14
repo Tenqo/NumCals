@@ -1,4 +1,4 @@
-name: Build and publish SysCalculator Windows release
+name: Build and publish NumCals Windows release
 
 "on":
   push:
@@ -93,12 +93,12 @@ jobs:
 
           $releaseArguments = @(
             $tag,
-            '.\dist\SysCalculator-Setup.exe',
-            '.\dist\SysCalculator-portable.zip',
+            '.\dist\NumCals-Setup.exe',
+            '.\dist\NumCals-portable.zip',
             '.\dist\Install-LatestRelease.ps1',
             '.\dist\SHA256SUMS.txt',
             '--title',
-            "SysCalculator $displayVersion",
+            "NumCals $displayVersion",
             '--notes-file',
             '.github/release-notes.md'
           )

@@ -29,7 +29,7 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   window_channel_ = std::make_unique<flutter::MethodChannel<>>(
-      flutter_controller_->engine()->messenger(), "syscalculator/window",
+      flutter_controller_->engine()->messenger(), "numcals/window",
       &flutter::StandardMethodCodec::GetInstance());
   window_channel_->SetMethodCallHandler(
       [this](const flutter::MethodCall<>& call,

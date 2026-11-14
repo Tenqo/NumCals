@@ -1,5 +1,5 @@
 param(
-    [string]$Repository = 'Tenqo/SysCalculator',
+    [string]$Repository = 'Tenqo/NumCals',
     [string]$Action,
     [switch]$SelfTest
 )
@@ -7,12 +7,12 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
-    throw "Repository must use the owner/repository format, for example 'Tenqo/SysCalculator'."
+    throw "Repository must use the owner/repository format, for example 'Tenqo/NumCals'."
 }
 
 $script:RepositoryName = $Repository
-$script:WorkDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "SysCalculator-Install-$([guid]::NewGuid().ToString('N'))"
-$script:SettingsPath = Join-Path $env:LOCALAPPDATA 'Tenqo Digital\SysCalculator\install-state.json'
+$script:WorkDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "NumCals-Install-$([guid]::NewGuid().ToString('N'))"
+$script:SettingsPath = Join-Path $env:LOCALAPPDATA 'Tenqo Digital\NumCals\install-state.json'
 $script:CommandDirectory = Join-Path (Split-Path -Parent $script:SettingsPath) 'cli'
 $script:CommandScriptPath = Join-Path $script:CommandDirectory 'Install-LatestRelease.ps1'
 $script:InstallerScriptPath = $PSCommandPath
@@ -90,7 +90,7 @@ function Resolve-InstallPath {
 }
 
 function Read-InstallSettings {
-    $defaultPath = Join-Path $env:LOCALAPPDATA 'Programs\SysCalculator'
+    $defaultPath = Join-Path $env:LOCALAPPDATA 'Programs\NumCals'
     $savedSettings = Read-PersistedSettings
     if ($savedSettings -and $savedSettings.repository -eq $script:RepositoryName -and
         -not [string]::IsNullOrWhiteSpace([string]$savedSettings.installPath)) {
@@ -215,7 +215,7 @@ function Show-InstallerBanner {
 
 function Show-SessionSummary {
     if ($script:HadErrors) {
-        Write-Status 'If installation did not complete or SysCalculator is missing, review the red errors above.' -Level Warning
+        Write-Status 'If installation did not complete or NumCals is missing, review the red errors above.' -Level Warning
     } elseif ($script:HadWarnings) {
         Write-Status 'Session completed with warnings. Review the yellow messages above.' -Level Warning
     } else {
@@ -279,20 +279,20 @@ function Install-CommandLineEntryPoint {
         Copy-Item -LiteralPath $sourcePath -Destination $installedScript -Force
     }
 
-    $launcherPath = Join-Path $script:CommandDirectory 'SysCalculator.cmd'
+    $launcherPath = Join-Path $script:CommandDirectory 'NumCals.cmd'
     [System.IO.File]::WriteAllText(
         $launcherPath,
         (Get-CommandLauncherContent),
         [System.Text.Encoding]::ASCII
     )
     Add-CommandDirectoryToPath
-    Write-Status 'PowerShell command registered. Open a new PowerShell window to use SysCalculator.' -Level Success
+    Write-Status 'PowerShell command registered. Open a new PowerShell window to use NumCals.' -Level Success
 }
 
 function Remove-CommandLineFiles {
     param([string]$CommandDirectory)
 
-    $filesToRemove = @('SysCalculator.cmd', 'Install-LatestRelease.ps1')
+    $filesToRemove = @('NumCals.cmd', 'Install-LatestRelease.ps1')
 
     foreach ($fileName in $filesToRemove) {
         $filePath = Join-Path $CommandDirectory $fileName
@@ -351,7 +351,7 @@ function Assert-SupportedArchitecture {
     param([string]$Architecture = (Get-OperatingSystemArchitecture))
 
     if ($Architecture -notin @('x64', 'ARM64')) {
-        throw "SysCalculator requires 64-bit Windows (x64 or ARM64). Detected architecture: $Architecture."
+        throw "NumCals requires 64-bit Windows (x64 or ARM64). Detected architecture: $Architecture."
     }
 }
 
@@ -385,12 +385,12 @@ function Assert-InstalledExecutable {
     param([string]$ExecutablePath)
 
     if (-not (Test-Path -LiteralPath $ExecutablePath -PathType Leaf)) {
-        throw "SysCalculator.exe was not found at $ExecutablePath."
+        throw "NumCals.exe was not found at $ExecutablePath."
     }
 
     $fileInformation = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExecutablePath)
-    if ($fileInformation.ProductName -ine 'SysCalculator') {
-        throw "The executable at $ExecutablePath is not identified as the SysCalculator app."
+    if ($fileInformation.ProductName -ine 'NumCals') {
+        throw "The executable at $ExecutablePath is not identified as the NumCals app."
     }
 
     return $fileInformation
@@ -429,14 +429,14 @@ function Assert-InstallDirectorySafe {
         return
     }
 
-    $installedExecutable = Join-Path $InstallPath 'SysCalculator.exe'
+    $installedExecutable = Join-Path $InstallPath 'NumCals.exe'
     if (Test-Path -LiteralPath $installedExecutable -PathType Leaf) {
         [void](Assert-InstalledExecutable -ExecutablePath $installedExecutable)
         return
     }
 
     if (@(Get-ChildItem -LiteralPath $InstallPath -Force).Count -gt 0) {
-        throw "The selected folder is not empty and does not contain SysCalculator.exe: $InstallPath. Choose an empty folder to avoid overwriting unrelated files."
+        throw "The selected folder is not empty and does not contain NumCals.exe: $InstallPath. Choose an empty folder to avoid overwriting unrelated files."
     }
 }
 
@@ -444,14 +444,14 @@ function Get-LatestRelease {
     $releaseUrl = "https://api.github.com/repos/$script:RepositoryName/releases/latest"
     $headers = @{
         Accept = 'application/vnd.github+json'
-        'User-Agent' = 'SysCalculatorInstaller'
+        'User-Agent' = 'NumCalsInstaller'
     }
     $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers
-    $asset = $release.assets | Where-Object { $_.name -eq 'SysCalculator-Setup.exe' } |
+    $asset = $release.assets | Where-Object { $_.name -eq 'NumCals-Setup.exe' } |
         Select-Object -First 1
 
     if ($null -eq $asset) {
-        throw "The latest release for $script:RepositoryName does not contain SysCalculator-Setup.exe."
+        throw "The latest release for $script:RepositoryName does not contain NumCals-Setup.exe."
     }
 
     return [pscustomobject]@{
@@ -470,7 +470,7 @@ function Invoke-VerifiedDownload {
             param([string]$DownloadUrl, [string]$OutputPath)
             Invoke-WebRequest -UseBasicParsing -Uri $DownloadUrl -OutFile $OutputPath -Headers @{
                 Accept = 'application/octet-stream'
-                'User-Agent' = 'SysCalculatorInstaller'
+                'User-Agent' = 'NumCalsInstaller'
             }
         }
     )
@@ -547,7 +547,7 @@ function Save-InstallerDiagnosticLog {
     }
 
     $diagnosticPath = Join-Path ([System.IO.Path]::GetTempPath()) `
-        "SysCalculator-setup-$([guid]::NewGuid().ToString('N')).log"
+        "NumCals-setup-$([guid]::NewGuid().ToString('N')).log"
     Move-Item -LiteralPath $LogPath -Destination $diagnosticPath
     return $diagnosticPath
 }
@@ -581,7 +581,7 @@ function Invoke-SetupInstall {
 
     $downloadDirectory = Join-Path $script:WorkDirectory 'downloads'
     New-Item -ItemType Directory -Path $downloadDirectory -Force | Out-Null
-    $setupPath = Join-Path $downloadDirectory 'SysCalculator-Setup.exe'
+    $setupPath = Join-Path $downloadDirectory 'NumCals-Setup.exe'
     $logPath = Join-Path $downloadDirectory 'setup.log'
 
     Write-Status 'Checking for the latest release...'
@@ -618,7 +618,7 @@ function Invoke-SetupInstall {
         throw "Installation failed with code $($process.ExitCode). $reason$diagnosticMessage Check the log, confirm the selected folder is writable, and run the installer again."
     }
 
-    $installedExecutable = Join-Path $Settings.installPath 'SysCalculator.exe'
+    $installedExecutable = Join-Path $Settings.installPath 'NumCals.exe'
     if (-not (Test-Path -LiteralPath $installedExecutable -PathType Leaf)) {
         $diagnosticPath = Save-InstallerDiagnosticLog -LogPath $logPath
         $diagnosticMessage = if ($diagnosticPath) {
@@ -626,7 +626,7 @@ function Invoke-SetupInstall {
         } else {
             ''
         }
-        throw "The installer reported success, but SysCalculator.exe was not found in the selected folder.$diagnosticMessage Review the installer log and confirm the selected folder is accessible."
+        throw "The installer reported success, but NumCals.exe was not found in the selected folder.$diagnosticMessage Review the installer log and confirm the selected folder is accessible."
     }
 
     $Settings.releaseTag = [string]$latest.Release.tag_name
@@ -635,10 +635,10 @@ function Invoke-SetupInstall {
     try {
         Install-CommandLineEntryPoint
     } catch {
-        Write-Status "The app installed, but the SysCalculator command could not be registered: $($_.Exception.Message). You can still launch the app from $($Settings.installPath)." -Level Warning
+        Write-Status "The app installed, but the NumCals command could not be registered: $($_.Exception.Message). You can still launch the app from $($Settings.installPath)." -Level Warning
     }
 
-    Write-Status "SysCalculator $($latest.Release.tag_name) installed successfully." -Level Success
+    Write-Status "NumCals $($latest.Release.tag_name) installed successfully." -Level Success
     Write-Status 'Installation completed successfully.' -Level Success
     $script:InstallationCompleted = $true
     Clear-InstallerWorkDirectory
@@ -648,18 +648,18 @@ function Invoke-Uninstall {
     param([string]$InstallPath)
 
     $InstallPath = Resolve-InstallPath -InputPath $InstallPath
-    $installedExecutable = Join-Path $InstallPath 'SysCalculator.exe'
+    $installedExecutable = Join-Path $InstallPath 'NumCals.exe'
     [void](Assert-InstalledExecutable -ExecutablePath $installedExecutable)
 
     $uninstaller = Join-Path $InstallPath 'unins000.exe'
     if (-not (Test-Path -LiteralPath $uninstaller -PathType Leaf)) {
-        throw "The SysCalculator uninstaller was not found at $uninstaller."
+        throw "The NumCals uninstaller was not found at $uninstaller."
     }
 
     $uninstallLogPath = Join-Path ([System.IO.Path]::GetTempPath()) `
-        "SysCalculator-uninstall-$([guid]::NewGuid().ToString('N')).log"
+        "NumCals-uninstall-$([guid]::NewGuid().ToString('N')).log"
     $arguments = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG="' + $uninstallLogPath + '"'
-    Write-Status 'Removing SysCalculator...'
+    Write-Status 'Removing NumCals...'
     $process = Start-Process -FilePath $uninstaller `
         -ArgumentList $arguments `
         -PassThru -Wait -WindowStyle Hidden
@@ -680,7 +680,7 @@ function Invoke-Uninstall {
         } else {
             ''
         }
-        throw "The uninstaller returned success, but SysCalculator.exe remains at $installedExecutable. Installation state and command registration were left unchanged.$diagnosticMessage"
+        throw "The uninstaller returned success, but NumCals.exe remains at $installedExecutable. Installation state and command registration were left unchanged.$diagnosticMessage"
     }
 
     if (Test-Path -LiteralPath $uninstallLogPath -PathType Leaf) {
@@ -691,16 +691,16 @@ function Invoke-Uninstall {
         Remove-Item -LiteralPath $script:SettingsPath -Force
     }
     Remove-CommandLineEntryPoint
-    Write-Status 'SysCalculator was removed.' -Level Success
+    Write-Status 'NumCals was removed.' -Level Success
 }
 
 function Show-CommandHelp {
     Write-Host ''
     Write-Host '  AVAILABLE COMMANDS' -ForegroundColor Cyan
-    Write-Host '  [1] SysCalculator update     Install only when a newer release is available.' -ForegroundColor Gray
-    Write-Host '  [2] SysCalculator upgrade    Reinstall the latest release.' -ForegroundColor Gray
-    Write-Host '  [3] SysCalculator remove     Confirm and uninstall SysCalculator.' -ForegroundColor Gray
-    Write-Host '  [4] SysCalculator help       Show this help.' -ForegroundColor Gray
+    Write-Host '  [1] NumCals update     Install only when a newer release is available.' -ForegroundColor Gray
+    Write-Host '  [2] NumCals upgrade    Reinstall the latest release.' -ForegroundColor Gray
+    Write-Host '  [3] NumCals remove     Confirm and uninstall NumCals.' -ForegroundColor Gray
+    Write-Host '  [4] NumCals help       Show this help.' -ForegroundColor Gray
     Write-Host '  [5] exit                     Close this PowerShell session.' -ForegroundColor Gray
     Write-Host ''
 }
@@ -723,7 +723,7 @@ function Resolve-InstallerCommand {
         }
     }
 
-    if ($tokens[0] -ieq 'SysCalculator') {
+    if ($tokens[0] -ieq 'NumCals') {
         if ($tokens.Count -ne 2) {
             return $null
         }
@@ -756,16 +756,16 @@ function Invoke-InstallerCommand {
     if ($Command -eq 'update' -or $Command -eq 'upgrade') {
         $saved = Read-PersistedSettings
         if (-not $saved) {
-            throw 'No saved installation was found. Run the PowerShell installer to install SysCalculator.'
+            throw 'No saved installation was found. Run the PowerShell installer to install NumCals.'
         }
         if ($saved.repository -match '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
             $script:RepositoryName = [string]$saved.repository
         }
 
         $installPath = Resolve-InstallPath -InputPath ([string]$saved.installPath)
-        $installedExecutable = Join-Path $installPath 'SysCalculator.exe'
+        $installedExecutable = Join-Path $installPath 'NumCals.exe'
         if (-not (Test-Path -LiteralPath $installedExecutable -PathType Leaf)) {
-            throw "The saved installation is missing SysCalculator.exe at $installPath. Run the installer again to repair it."
+            throw "The saved installation is missing NumCals.exe at $installPath. Run the installer again to repair it."
         }
         [void](Assert-InstalledExecutable -ExecutablePath $installedExecutable)
 
@@ -774,7 +774,7 @@ function Invoke-InstallerCommand {
         $decision = Get-InstallationDecision -ExecutableExists $true `
             -InstalledReleaseTag $installedTag -LatestReleaseTag ([string]$latest.Release.tag_name)
         if ($decision -eq 'Current' -and $Command -eq 'update') {
-            Write-Status "SysCalculator is already up to date ($($latest.Release.tag_name))." -Level Success
+            Write-Status "NumCals is already up to date ($($latest.Release.tag_name))." -Level Success
             $script:InstallationCompleted = $true
             return
         }
@@ -799,7 +799,7 @@ function Invoke-InstallerCommand {
     }
     if ($Command -eq 'remove') {
         $confirmation = Read-Choice `
-            -Prompt 'Remove SysCalculator from this computer?' `
+            -Prompt 'Remove NumCals from this computer?' `
             -Options @(
                 [pscustomobject]@{ value = 'yes'; label = 'Yes' },
                 [pscustomobject]@{ value = 'no'; label = 'No' }
@@ -810,7 +810,7 @@ function Invoke-InstallerCommand {
         }
 
         $saved = Read-PersistedSettings
-        $installPath = Join-Path $env:LOCALAPPDATA 'Programs\SysCalculator'
+        $installPath = Join-Path $env:LOCALAPPDATA 'Programs\NumCals'
         if ($saved -and -not [string]::IsNullOrWhiteSpace([string]$saved.installPath)) {
             $installPath = [string]$saved.installPath
         }
@@ -831,9 +831,9 @@ function Invoke-InstallerSelfTest {
         throw 'Installer option parsing self-test failed.'
     }
 
-    if ((Resolve-InstallerCommand -InputValue 'sYsCaLcUlAtOr uPdAtE') -ne 'update' -or
-        (Resolve-InstallerCommand -InputValue 'SysCalculator UPGRADE') -ne 'upgrade' -or
-        (Resolve-InstallerCommand -InputValue 'SYSCALCULATOR REMOVE') -ne 'remove' -or
+    if ((Resolve-InstallerCommand -InputValue 'nUmCaLs uPdAtE') -ne 'update' -or
+        (Resolve-InstallerCommand -InputValue 'NumCals UPGRADE') -ne 'upgrade' -or
+        (Resolve-InstallerCommand -InputValue 'NUMCALS REMOVE') -ne 'remove' -or
         (Resolve-InstallerCommand -InputValue '1') -ne 'update' -or
         (Resolve-InstallerCommand -InputValue '2') -ne 'upgrade' -or
         (Resolve-InstallerCommand -InputValue '3') -ne 'remove' -or
@@ -844,7 +844,7 @@ function Invoke-InstallerSelfTest {
         (Resolve-InstallerCommand -InputValue 'upGRADE') -ne 'upgrade' -or
         (Resolve-InstallerCommand -InputValue 'hElP') -ne 'help' -or
         (Resolve-InstallerCommand -InputValue 'EXIT') -ne 'exit' -or
-        $null -ne (Resolve-InstallerCommand -InputValue 'SysCalculator remove/install')) {
+        $null -ne (Resolve-InstallerCommand -InputValue 'NumCals remove/install')) {
         throw 'Installer command parsing self-test failed.'
     }
     if (-not (Get-CommandLauncherContent).Contains('-Action "%*"')) {
@@ -880,7 +880,7 @@ function Invoke-InstallerSelfTest {
         throw 'Installer did not reject unsupported 32-bit Windows.'
     }
 
-    $testInstallPath = Join-Path $env:TEMP 'SysCalculator-SelfTest'
+    $testInstallPath = Join-Path $env:TEMP 'NumCals-SelfTest'
     if (-not [System.IO.Path]::IsPathRooted(
         (Resolve-InstallPath -InputPath $testInstallPath)
     )) {
@@ -896,13 +896,13 @@ function Invoke-InstallerSelfTest {
     if (-not $invalidPathRejected) {
         throw 'Installer accepted a path containing a quote.'
     }
-    $unicodeInstallPath = Resolve-InstallPath -InputPath (Join-Path $env:TEMP 'SysCalculator café')
-    if ($unicodeInstallPath -notlike '*SysCalculator café') {
+    $unicodeInstallPath = Resolve-InstallPath -InputPath (Join-Path $env:TEMP 'NumCals café')
+    if ($unicodeInstallPath -notlike '*NumCals café') {
         throw 'Installer did not preserve a non-ASCII installation path.'
     }
 
     $silentArguments = New-SetupArgumentString `
-        -InstallPath 'C:\Users\Test User\SysCalculator' `
+        -InstallPath 'C:\Users\Test User\NumCals' `
         -LogPath 'C:\Temp\setup.log' -ShortcutChoice 'skip'
     if ($silentArguments -notmatch '/VERYSILENT' -or
         $silentArguments -notmatch '/TASKS="!desktopicon"') {
@@ -910,21 +910,21 @@ function Invoke-InstallerSelfTest {
     }
 
     $shortcutArguments = New-SetupArgumentString `
-        -InstallPath 'C:\Users\Test User\SysCalculator' `
+        -InstallPath 'C:\Users\Test User\NumCals' `
         -LogPath 'C:\Temp\setup.log' -ShortcutChoice 'yes'
     if ($shortcutArguments -notmatch '/TASKS="desktopicon"') {
         throw 'PowerShell installer did not select desktop shortcut creation.'
     }
 
     $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) `
-        "SysCalculator-InstallerSelfTest-$([guid]::NewGuid().ToString('N'))"
+        "NumCals-InstallerSelfTest-$([guid]::NewGuid().ToString('N'))"
     $testDiagnosticPath = $null
     New-Item -ItemType Directory -Path $testRoot | Out-Null
     try {
         $testSettingsPath = Join-Path $testRoot 'install-state.json'
         $testSettings = @{
-            repository = 'Tenqo/SysCalculator'
-            installPath = Join-Path $testRoot 'SysCalculator'
+            repository = 'Tenqo/NumCals'
+            installPath = Join-Path $testRoot 'NumCals'
             releaseTag = 'v1.0.2'
         }
         Write-PersistedSettings -Settings $testSettings -Path $testSettingsPath
@@ -959,7 +959,7 @@ function Invoke-InstallerSelfTest {
         }
 
         $fixturePath = Join-Path $testRoot 'payload.bin'
-        $fixtureContent = 'SysCalculator installer test payload'
+        $fixtureContent = 'NumCals installer test payload'
         [System.IO.File]::WriteAllText($fixturePath, $fixtureContent)
         $fixtureHash = (Get-FileHash -LiteralPath $fixturePath -Algorithm SHA256).Hash
         $downloadDestination = Join-Path $testRoot 'verified-download.bin'
@@ -967,7 +967,7 @@ function Invoke-InstallerSelfTest {
             param([string]$DownloadUrl, [string]$OutputPath)
             Copy-Item -LiteralPath $fixturePath -Destination $OutputPath
         }.GetNewClosure()
-        Invoke-VerifiedDownload -Url 'https://github.com/Tenqo/SysCalculator/releases/download/v1.0.2/test.bin' `
+        Invoke-VerifiedDownload -Url 'https://github.com/Tenqo/NumCals/releases/download/v1.0.2/test.bin' `
             -Destination $downloadDestination -ExpectedSize (Get-Item $fixturePath).Length `
             -ExpectedDigest "sha256:$fixtureHash" -DownloadRequest $copyFixture
         if ((Get-FileHash -LiteralPath $downloadDestination -Algorithm SHA256).Hash -ine $fixtureHash) {
@@ -977,7 +977,7 @@ function Invoke-InstallerSelfTest {
         $badDigestDestination = Join-Path $testRoot 'bad-digest.bin'
         $badDigestRejected = $false
         try {
-            Invoke-VerifiedDownload -Url 'https://github.com/Tenqo/SysCalculator/releases/download/v1.0.2/test.bin' `
+            Invoke-VerifiedDownload -Url 'https://github.com/Tenqo/NumCals/releases/download/v1.0.2/test.bin' `
                 -Destination $badDigestDestination -ExpectedSize (Get-Item $fixturePath).Length `
                 -ExpectedDigest ('sha256:' + ('0' * 64)) -DownloadRequest $copyFixture
         } catch {
@@ -995,7 +995,7 @@ function Invoke-InstallerSelfTest {
         }
         $downloadFailureSurfaced = $false
         try {
-            Invoke-VerifiedDownload -Url 'https://github.com/Tenqo/SysCalculator/releases/download/v1.0.2/test.bin' `
+            Invoke-VerifiedDownload -Url 'https://github.com/Tenqo/NumCals/releases/download/v1.0.2/test.bin' `
                 -Destination $failedDestination -ExpectedSize (Get-Item $fixturePath).Length `
                 -ExpectedDigest "sha256:$fixtureHash" -DownloadRequest $partialFailure
         } catch {
@@ -1008,7 +1008,7 @@ function Invoke-InstallerSelfTest {
 
         $invalidUrlRejected = $false
         try {
-            Invoke-VerifiedDownload -Url 'http://github.com/Tenqo/SysCalculator/test.bin' `
+            Invoke-VerifiedDownload -Url 'http://github.com/Tenqo/NumCals/test.bin' `
                 -Destination (Join-Path $testRoot 'insecure-download.bin') `
                 -ExpectedSize 1 -ExpectedDigest "sha256:$fixtureHash" -DownloadRequest $copyFixture
         } catch {
@@ -1022,7 +1022,7 @@ function Invoke-InstallerSelfTest {
         try {
             Invoke-Uninstall -InstallPath $emptyInstallPath
         } catch {
-            $missingInstallRejected = $_.Exception.Message -like '*SysCalculator.exe was not found*'
+            $missingInstallRejected = $_.Exception.Message -like '*NumCals.exe was not found*'
         }
         if (-not $missingInstallRejected) {
             throw 'Uninstall did not reject a missing installation without proceeding.'
@@ -1030,13 +1030,13 @@ function Invoke-InstallerSelfTest {
 
         $commandTestDirectory = Join-Path $testRoot 'cli'
         New-Item -ItemType Directory -Path $commandTestDirectory | Out-Null
-        [System.IO.File]::WriteAllText((Join-Path $commandTestDirectory 'SysCalculator.cmd'), 'launcher')
+        [System.IO.File]::WriteAllText((Join-Path $commandTestDirectory 'NumCals.cmd'), 'launcher')
         [System.IO.File]::WriteAllText((Join-Path $commandTestDirectory 'Install-LatestRelease.ps1'), 'installer')
         $keepPath = Join-Path $commandTestDirectory 'keep.txt'
         [System.IO.File]::WriteAllText($keepPath, 'user data')
         Remove-CommandLineFiles -CommandDirectory $commandTestDirectory
         if (-not (Test-Path -LiteralPath $keepPath -PathType Leaf) -or
-            (Test-Path -LiteralPath (Join-Path $commandTestDirectory 'SysCalculator.cmd')) -or
+            (Test-Path -LiteralPath (Join-Path $commandTestDirectory 'NumCals.cmd')) -or
             (Test-Path -LiteralPath (Join-Path $commandTestDirectory 'Install-LatestRelease.ps1'))) {
             throw 'Uninstall command cleanup removed unrelated data or left a launcher file.'
         }
@@ -1047,7 +1047,7 @@ function Invoke-InstallerSelfTest {
 
         $ownedCommandDirectory = Join-Path $testRoot 'owned-cli'
         New-Item -ItemType Directory -Path $ownedCommandDirectory | Out-Null
-        [System.IO.File]::WriteAllText((Join-Path $ownedCommandDirectory 'SysCalculator.cmd'), 'launcher')
+        [System.IO.File]::WriteAllText((Join-Path $ownedCommandDirectory 'NumCals.cmd'), 'launcher')
         [System.IO.File]::WriteAllText((Join-Path $ownedCommandDirectory 'Install-LatestRelease.ps1'), 'installer')
         Remove-CommandLineFiles -CommandDirectory $ownedCommandDirectory
         if (Test-Path -LiteralPath $ownedCommandDirectory) {
@@ -1057,12 +1057,12 @@ function Invoke-InstallerSelfTest {
         $selfDeleteDirectory = Join-Path $testRoot 'self-delete'
         New-Item -ItemType Directory -Path $selfDeleteDirectory | Out-Null
         $selfDeleteScript = Join-Path $selfDeleteDirectory 'Install-LatestRelease.ps1'
-        $selfDeleteLauncher = Join-Path $selfDeleteDirectory 'SysCalculator.cmd'
+        $selfDeleteLauncher = Join-Path $selfDeleteDirectory 'NumCals.cmd'
         [System.IO.File]::WriteAllText($selfDeleteLauncher, 'launcher')
         [System.IO.File]::WriteAllText($selfDeleteScript, @'
 $scriptPath = $PSCommandPath
 $scriptDirectory = Split-Path -Parent $scriptPath
-Remove-Item -LiteralPath (Join-Path $scriptDirectory 'SysCalculator.cmd') -Force
+Remove-Item -LiteralPath (Join-Path $scriptDirectory 'NumCals.cmd') -Force
 Remove-Item -LiteralPath $scriptPath -Force
 if (Test-Path -LiteralPath $scriptPath) { exit 9 }
 '@)
@@ -1085,7 +1085,7 @@ $selfDeleteProcess = Start-Process -FilePath $powerShellExecutable `
         $launcherTestDirectory = Join-Path $testRoot 'launcher'
         New-Item -ItemType Directory -Path $launcherTestDirectory | Out-Null
         $launcherScriptPath = Join-Path $launcherTestDirectory 'Install-LatestRelease.ps1'
-        $launcherPath = Join-Path $launcherTestDirectory 'SysCalculator.cmd'
+        $launcherPath = Join-Path $launcherTestDirectory 'NumCals.cmd'
         $launcherOutputPath = Join-Path $testRoot 'launcher-output.txt'
         $launcherErrorPath = Join-Path $testRoot 'launcher-error.txt'
         Copy-Item -LiteralPath $PSCommandPath -Destination $launcherScriptPath
@@ -1133,11 +1133,11 @@ $selfDeleteProcess = Start-Process -FilePath $powerShellExecutable `
         throw 'PowerShell installer contains a graphical wizard launch path.'
     }
 
-    $setupDefinition = Join-Path $PSScriptRoot '..\..\packaging\windows\SysCalculator-Setup.iss'
+    $setupDefinition = Join-Path $PSScriptRoot '..\..\packaging\windows\NumCals-Setup.iss'
     $setupSource = Get-Content -LiteralPath $setupDefinition -Raw
     if ($setupSource -notmatch '(?m)^WizardStyle=modern' -or
-        $setupSource -notmatch '(?m)^AppName=SysCalculator') {
-        throw 'The standalone setup executable does not declare the SysCalculator graphical wizard.'
+        $setupSource -notmatch '(?m)^AppName=NumCals') {
+        throw 'The standalone setup executable does not declare the NumCals graphical wizard.'
     }
 
     $cancelDescription = Get-InstallerErrorDescription -ExitCode 2
@@ -1156,15 +1156,15 @@ try {
     if ($SelfTest) {
         Invoke-InstallerSelfTest
     } elseif ($env:OS -ne 'Windows_NT') {
-        throw 'SysCalculator can only be installed on Windows.'
+        throw 'NumCals can only be installed on Windows.'
     } elseif (-not [string]::IsNullOrWhiteSpace($Action)) {
         $resolvedAction = Resolve-InstallerCommand -InputValue $Action
         if (-not $resolvedAction) {
-            Write-Status "Unknown command '$Action'. Type 'SysCalculator help' for available commands." -Level Warning
+            Write-Status "Unknown command '$Action'. Type 'NumCals help' for available commands." -Level Warning
             Show-CommandHelp
             $script:ExitCode = 1
         } else {
-            $commandLabel = if ($resolvedAction -eq 'exit') { 'exit' } else { "SysCalculator $resolvedAction" }
+            $commandLabel = if ($resolvedAction -eq 'exit') { 'exit' } else { "NumCals $resolvedAction" }
             Write-Status "Command: $commandLabel"
             try {
                 Invoke-InstallerCommand -Command $resolvedAction
@@ -1184,7 +1184,7 @@ try {
 
         $installationReady = $false
         try {
-            $installedExecutable = Join-Path $settings.installPath 'SysCalculator.exe'
+            $installedExecutable = Join-Path $settings.installPath 'NumCals.exe'
             if (Test-Path -LiteralPath $installedExecutable -PathType Leaf) {
                 $latest = Get-LatestRelease
                 $installedTag = Get-InstalledReleaseTag -ExecutablePath $installedExecutable
@@ -1200,10 +1200,10 @@ try {
                     try {
                         Install-CommandLineEntryPoint
                     } catch {
-                        Write-Status "The app is current, but the SysCalculator command could not be registered: $($_.Exception.Message). You can still launch the app from $($settings.installPath)." -Level Warning
+                        Write-Status "The app is current, but the NumCals command could not be registered: $($_.Exception.Message). You can still launch the app from $($settings.installPath)." -Level Warning
                     }
                     if ($decision -eq 'Current') {
-                        Write-Status "SysCalculator is already up to date ($($latest.Release.tag_name))." -Level Success
+                        Write-Status "NumCals is already up to date ($($latest.Release.tag_name))." -Level Success
                     } elseif ($decision -eq 'NewerInstalled') {
                         Write-Status "The installed version $installedTag is newer than the latest release $($latest.Release.tag_name). It was left unchanged." -Level Warning
                     } else {
@@ -1228,11 +1228,11 @@ try {
                 $inputValue = Read-Host 'Command (enter a number or command)'
                 $command = Resolve-InstallerCommand -InputValue $inputValue
                 if (-not $command) {
-                    Write-Status "Unknown command '$inputValue'. Type 'SysCalculator help' for available commands." -Level Warning
+                    Write-Status "Unknown command '$inputValue'. Type 'NumCals help' for available commands." -Level Warning
                     continue
                 }
 
-                $commandLabel = if ($command -eq 'exit') { 'exit' } else { "SysCalculator $command" }
+                $commandLabel = if ($command -eq 'exit') { 'exit' } else { "NumCals $command" }
                 Write-Status "Command: $commandLabel"
                 if ($command -eq 'exit') { break }
 

@@ -1,6 +1,8 @@
-# SysCalculator 1.0.2 release preparation
+# NumCals 1.0.2 release preparation
 
-**Status:** Prepared for human review; not built, tagged, or published here.
+**Status:** NumCals 1.0.2+3 is a Windows_Tests test candidate. Its branch
+workflow will build and upload a seven-day artifact; no tag or GitHub Release
+is being created.
 
 **Readiness:** 6/10 — suitable for human review, not ready to publish until
 Windows packaging and disposable-VM testing are completed.
@@ -17,7 +19,7 @@ Windows packaging and disposable-VM testing are completed.
   after both checks pass. Partial files are removed on failure; HTTPS and the
   GitHub release host are required.
 - Setup is prevented from using a non-empty directory unless it contains an
-  executable identified as SysCalculator. A failed setup retains its installer
+  executable identified as NumCals. A failed setup retains its installer
   log in the user's temporary directory and gives recovery guidance.
 - Uninstall verifies the app and uninstaller, then confirms the executable was
   removed before clearing installer state and the PATH command entry. It does
@@ -44,8 +46,8 @@ If you self-sign locally after packaging, regenerate `SHA256SUMS.txt` after
 signing so it covers the exact files being distributed. Never commit the
 certificate, private key, or password.
 
-The v1.0.1 setup EXE was verified as `NotSigned`; no v1.0.2 executable has
-been built or signed.
+The v1.0.1 setup EXE was verified as `NotSigned`. The local NumCals 1.0.2+3
+application build succeeded; no v1.0.2 executable has been signed.
 
 ## Significant changes: rationale and verification
 
@@ -56,7 +58,7 @@ been built or signed.
 | Safer install/uninstall boundaries | A custom non-empty folder could otherwise be overwritten; uninstall cleanup should not remove user data or report success while the app remains. | Self-test checks non-empty unrelated-folder rejection, missing-install uninstall rejection, self-removal of the running CLI script, removal of an empty CLI folder, and preservation of unrelated files. No real installation was touched. |
 | Architecture checks | The release contains an x64 executable; x86 Windows must not be offered an incompatible package. | Self-test validates AMD64, ARM64 under emulation, and x86 classification. ARM64 runtime behavior remains untested. |
 | Checksums and local signing | Stage 3 found the v1.0.1 setup was unsigned and releases lacked a published checksum file; the owner self-signs locally. | Checksum generation and overwrite protection self-tests passed. Signing and a complete local release build were unavailable; Actions has no certificate secret references. |
-| Windows test-branch workflow | Windows cloud validation is needed without publishing a release. | Run 43590657273 checked out the Pirootz-authored test branch, installed Flutter/Inno Setup, and resolved dependencies, then failed at analysis because Flutter 3.50 treated two deprecation infos as fatal. The test workflow now uses `flutter analyze --no-fatal-infos`; rerun pending. |
+| Windows test-branch workflow | Windows cloud validation is needed without publishing a release. | The `Windows_Tests` workflow builds the NumCals setup and portable artifacts, verifies checksums, and uploads a seven-day artifact. This run does not publish a GitHub Release. |
 | README and release notes | Existing release notes described outdated retry/command behavior; the README omitted checksum instructions and had a dead Project tree link. | Documentation reviewed against the current installer and workflow. |
 
 ## Tests and limitations
@@ -65,7 +67,7 @@ been built or signed.
 
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tooling\windows\Install-LatestRelease.ps1 -SelfTest`
   passed, including mocked download integrity/failure cases, retained
-  diagnostics, and an isolated `SysCalculator.cmd help` launcher round trip.
+  diagnostics, and an isolated `NumCals.cmd help` launcher round trip.
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tooling\windows\Build-WindowsRelease.ps1 -SelfTest`
   passed for SHA-256 manifest generation and refusing to overwrite an existing
   manifest.
@@ -90,7 +92,7 @@ been built or signed.
 - Direct script invocation in the restricted local shell was blocked by its
   execution policy. The process-scoped `-ExecutionPolicy Bypass` invocation
   passed; no machine-wide policy was changed.
-- GitHub Actions run [43590657273](https://github.com/Tenqo/SysCalculator/actions/runs/43590657273)
+- GitHub Actions run [43590657273](https://github.com/Tenqo/NumCals/actions/runs/43590657273)
   failed at `flutter analyze` on Flutter 3.50.0. The only findings were two
   informational `deprecated_member_use` notices for `package:flutter/material.dart`
   in `lib/main.dart` and `test/calculator_app_widget_test.dart`; tests, installer
@@ -100,15 +102,15 @@ been built or signed.
   self-test because it looked for `powershell.exe` inside PowerShell 7's
   `$PSHOME`. The self-test now detects `pwsh.exe` first and falls back to
   `powershell.exe`.
-- GitHub Actions run [43591187626](https://github.com/Tenqo/SysCalculator/actions/runs/43591187626)
+- GitHub Actions run [43591187626](https://github.com/Tenqo/NumCals/actions/runs/43591187626)
   passed analysis and all 27 Flutter tests, then failed at the PowerShell
   installer self-test due to the executable-path issue above. Release helper
   tests, packaging, checksum verification, and artifact upload were skipped.
 
 ### Not performed
 
-- The updated installer self-test and package build remain unverified in cloud
-  until the next Windows workflow run completes.
+- The Windows_Tests workflow is the end-to-end check for the updated installer,
+  package output, checksums, and artifact upload; it does not create a release.
 - During the host-test attempt, `flutter pub get` and `flutter --version`
   stalled without output. Inspection then hit a sandbox access denial for
   `C:\src\flutter\packages\flutter_tools\.dart_tool\package_config.json` and
@@ -129,7 +131,7 @@ been built or signed.
   by Windows.
 - The installer permits ARM64, but its runtime behavior has not been tested.
   x86 Windows is deliberately rejected.
-- `SysCalculator update` depends on the saved install state and registered
+- `NumCals update` depends on the saved install state and registered
   executable path. If state is missing or malformed, rerun the interactive
   installer rather than guessing an install location.
 - GUI behavior and installer side effects still require disposable-VM tests.

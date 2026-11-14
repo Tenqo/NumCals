@@ -10,8 +10,8 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $releasePath = Join-Path $projectRoot 'build\windows\x64\runner\Release'
 $outputPath = Join-Path $projectRoot 'dist'
-$portablePath = Join-Path $outputPath 'SysCalculator-portable.zip'
-$installerScript = Join-Path $projectRoot 'packaging\windows\SysCalculator-Setup.iss'
+$portablePath = Join-Path $outputPath 'NumCals-portable.zip'
+$installerScript = Join-Path $projectRoot 'packaging\windows\NumCals-Setup.iss'
 $releaseInstallScript = Join-Path $PSScriptRoot 'Install-LatestRelease.ps1'
 $checksumsPath = Join-Path $outputPath 'SHA256SUMS.txt'
 
@@ -85,7 +85,7 @@ function New-Sha256Manifest {
 
 function Invoke-BuildScriptSelfTest {
     $testDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
-        "SysCalculator-ReleaseSelfTest-$([guid]::NewGuid().ToString('N'))"
+        "NumCals-ReleaseSelfTest-$([guid]::NewGuid().ToString('N'))"
     New-Item -ItemType Directory -Path $testDirectory | Out-Null
     try {
         $assetOne = Join-Path $testDirectory 'setup.exe'
@@ -237,7 +237,7 @@ function Initialize-ReleaseSigning {
     }
 
     $signingDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
-        "SysCalculator-Signing-$([guid]::NewGuid().ToString('N'))"
+        "NumCals-Signing-$([guid]::NewGuid().ToString('N'))"
     $certificatePath = Join-Path $signingDirectory 'codesign.pfx'
     $certificateBytes = $null
     $importedCertificate = $null
@@ -328,7 +328,7 @@ Push-Location $projectRoot
 $signing = $null
 try {
     $expectedOutputs = @(
-        (Join-Path $outputPath 'SysCalculator-Setup.exe'),
+        (Join-Path $outputPath 'NumCals-Setup.exe'),
         $portablePath,
         (Join-Path $outputPath 'Install-LatestRelease.ps1'),
         $checksumsPath
@@ -372,14 +372,14 @@ try {
         throw 'Windows release build failed.'
     }
 
-    if (-not (Test-Path -LiteralPath (Join-Path $releasePath 'SysCalculator.exe'))) {
+    if (-not (Test-Path -LiteralPath (Join-Path $releasePath 'NumCals.exe'))) {
         throw "The Windows app was not found at $releasePath."
     }
-    $applicationExecutable = Join-Path $releasePath 'SysCalculator.exe'
+    $applicationExecutable = Join-Path $releasePath 'NumCals.exe'
     $applicationInformation = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($applicationExecutable)
-    if ($applicationInformation.ProductName -ine 'SysCalculator' -or
+    if ($applicationInformation.ProductName -ine 'NumCals' -or
         $applicationInformation.FileVersion -notmatch "^$([regex]::Escape($version))(\+\d+|\.\d+)?$") {
-        throw "The built SysCalculator.exe version does not match pubspec.yaml version $version."
+        throw "The built NumCals.exe version does not match pubspec.yaml version $version."
     }
 
     if ($signing) {
@@ -396,15 +396,15 @@ try {
         "/DAppSource=$releasePath",
         "/DAppVersion=$version",
         "/O$outputPath",
-        '/FSysCalculator-Setup',
+        '/FNumCals-Setup',
         $installerScript
     )
     & $compilerPath @compilerArguments
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $outputPath 'SysCalculator-Setup.exe') -PathType Leaf)) {
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $outputPath 'NumCals-Setup.exe') -PathType Leaf)) {
         throw 'Inno Setup could not create the Windows setup executable.'
     }
 
-    $setupExecutable = Join-Path $outputPath 'SysCalculator-Setup.exe'
+    $setupExecutable = Join-Path $outputPath 'NumCals-Setup.exe'
     if ($signing) {
         Invoke-AuthenticodeSigning -SignTool $signing.SignTool `
             -Thumbprint $signing.Certificate.Thumbprint `
@@ -420,7 +420,7 @@ try {
         (Join-Path $outputPath 'Install-LatestRelease.ps1')
     ) -Destination $checksumsPath
 
-    Write-Output "Windows setup created: $(Join-Path $outputPath 'SysCalculator-Setup.exe')"
+    Write-Output "Windows setup created: $(Join-Path $outputPath 'NumCals-Setup.exe')"
     Write-Output "Portable app created: $portablePath"
     Write-Output "Release installer created: $(Join-Path $outputPath 'Install-LatestRelease.ps1')"
     Write-Output "Release checksums created: $checksumsPath"
