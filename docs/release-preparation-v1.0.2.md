@@ -56,7 +56,7 @@ been built or signed.
 | Safer install/uninstall boundaries | A custom non-empty folder could otherwise be overwritten; uninstall cleanup should not remove user data or report success while the app remains. | Self-test checks non-empty unrelated-folder rejection, missing-install uninstall rejection, self-removal of the running CLI script, removal of an empty CLI folder, and preservation of unrelated files. No real installation was touched. |
 | Architecture checks | The release contains an x64 executable; x86 Windows must not be offered an incompatible package. | Self-test validates AMD64, ARM64 under emulation, and x86 classification. ARM64 runtime behavior remains untested. |
 | Checksums and local signing | Stage 3 found the v1.0.1 setup was unsigned and releases lacked a published checksum file; the owner self-signs locally. | Checksum generation and overwrite protection self-tests passed. Signing and a complete local release build were unavailable; Actions has no certificate secret references. |
-| Tag-bound, non-clobbering workflow | v1.0.1 correctly built from the tag, but a separate release-published path could rebuild and overwrite uploaded assets. | The local workflow adds tag/checkout validation and Flutter tests. GitHub Actions was not run: the remote workflow has no manual-dispatch trigger, and the current changes are uncommitted. |
+| Windows test-branch workflow | Windows cloud validation is needed without publishing a release. | Run 43590657273 checked out the Pirootz-authored test branch, installed Flutter/Inno Setup, and resolved dependencies, then failed at analysis because Flutter 3.50 treated two deprecation infos as fatal. The test workflow now uses `flutter analyze --no-fatal-infos`; rerun pending. |
 | README and release notes | Existing release notes described outdated retry/command behavior; the README omitted checksum instructions and had a dead Project tree link. | Documentation reviewed against the current installer and workflow. |
 
 ## Tests and limitations
@@ -74,6 +74,8 @@ been built or signed.
 - PowerShell parser checks and `git diff --check` passed.
 - After the CLI cleanup fix, the installer self-test passed, including a
   subprocess check that a running copy can remove its own script and launcher.
+- The initial Windows cloud run successfully provisioned the Windows runner,
+  installed Flutter and Inno Setup, and resolved Flutter dependencies.
 - The v1.0.1 Stage 3 audit independently downloaded all three original assets
   and confirmed their SHA-256 values against GitHub release metadata.
 
@@ -85,20 +87,23 @@ been built or signed.
 - Direct script invocation in the restricted local shell was blocked by its
   execution policy. The process-scoped `-ExecutionPolicy Bypass` invocation
   passed; no machine-wide policy was changed.
+- GitHub Actions run [43590657273](https://github.com/Tenqo/SysCalculator/actions/runs/43590657273)
+  failed at `flutter analyze` on Flutter 3.50.0. The only findings were two
+  informational `deprecated_member_use` notices for `package:flutter/material.dart`
+  in `lib/main.dart` and `test/calculator_app_widget_test.dart`; tests, installer
+  checks, and package creation were skipped. The analyzer command was updated to
+  keep infos visible but non-fatal; warnings and errors remain fatal. A rerun
+  has not yet been observed.
 
 ### Not performed
 
-- No static analysis, Windows package build, or GitHub Actions run has been
-  completed in this preparation pass.
+- The cloud analyzer retry, Flutter test suite, installer checks, and Windows
+  package build remain unverified until the updated workflow completes.
 - During the host-test attempt, `flutter pub get` and `flutter --version`
   stalled without output. Inspection then hit a sandbox access denial for
   `C:\src\flutter\packages\flutter_tools\.dart_tool\package_config.json` and
   the Flutter SDK repository. Flutter analysis, tests, and packaging therefore
   remain blocked until the sandbox permits access to `C:\src\flutter`.
-- The GitHub Actions workflow was inspected remotely. It runs only on tag pushes
-  and published releases; there are no `main` branch runs, and manual dispatch
-  is unavailable. The prepared local changes are not on GitHub, so a cloud run
-  could not test them without a prohibited push/tag/release.
 - No graphical setup, PowerShell installation, update, upgrade, uninstall,
   shortcut, failure-recovery, non-admin, or custom-path installation was run.
 - No signing was tested because credentials are unavailable.
