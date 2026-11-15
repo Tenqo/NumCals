@@ -4,8 +4,8 @@
 <p align="center"><b>A keyboard-friendly Windows calculator for everyday math, science, and currency conversion.</b></p>
 
 <p align="center">
-  <a href="https://github.com/Tenqo/NumCals/releases/latest"><img src="https://img.shields.io/github/v/release/Tenqo/NumCals?style=flat&amp;label=Stable&amp;color=806BFF&amp;labelColor=252A36" height="24" alt="Latest stable release"></a>
-  <a href="https://github.com/Tenqo/NumCals/releases"><img src="https://img.shields.io/github/v/release/Tenqo/NumCals?include_prereleases&amp;style=flat&amp;label=Latest&amp;color=F4B942&amp;labelColor=252A36" height="24" alt="Latest release including betas"></a>
+  <a href="https://github.com/Tenqo/NumCals/releases/latest"><img src="https://img.shields.io/badge/Stable-v1.0.2-806BFF?style=flat&amp;labelColor=252A36" height="24" alt="Latest stable release v1.0.2"></a>
+  <a href="https://github.com/Tenqo/NumCals/releases"><img src="https://img.shields.io/badge/Latest-v1.0.2-F4B942?style=flat&amp;labelColor=252A36" height="24" alt="Latest release v1.0.2"></a>
   <a href="https://github.com/Tenqo/NumCals/releases"><img src="https://img.shields.io/github/downloads/Tenqo/NumCals/total?style=flat&amp;label=Downloads&amp;color=35C9A5&amp;labelColor=252A36" height="24" alt="Total downloads"></a>
   <a href="https://github.com/Tenqo/NumCals/stargazers"><img src="https://img.shields.io/github/stars/Tenqo/NumCals?style=flat&amp;label=Stars&amp;color=F4B942&amp;labelColor=252A36&amp;logo=github&amp;logoColor=white" height="24" alt="GitHub stars"></a>
 </p>
@@ -71,7 +71,7 @@ The built-in Windows Calculator is fine. NumCals is for when you want more:
 
 ### Pick a file
 
-Every release has two files. Grab one:
+Choose one of the two app downloads:
 
 <img src="https://img.shields.io/badge/Recommended-806BFF?style=flat" alt="Recommended"> **[Setup wizard](#install-with-the-setup-wizard):** Run `NumCals-Setup.exe` and follow the prompts.
 Best if you want it installed like a normal app.
@@ -81,7 +81,7 @@ Keep all the files together in the same folder.
 
 <img src="https://img.shields.io/badge/Command%20line-252A36?style=flat&amp;logo=powershell&amp;logoColor=white" alt="Command line"> Prefer using a terminal? Use **[PowerShell](#install-with-powershell)**, then follow the steps there.
 
-> **Note:** The v1.0.1 file names still use the old product name from before the rename. That's normal.
+> **Note:** v1.0.2 is the first release with the NumCals product name. Older v1.0.1 assets still use SysCalculator filenames.
 
 > **Seeing a blue "Windows protected your PC" screen?** That's expected, since NumCals isn't code signed yet. See the [FAQ](#faq) for how to get past it safely.
 
@@ -99,7 +99,7 @@ Pick a method below, or build it yourself.
 4. Pick your install folder and whether you want a shortcut.
 5. Open NumCals from the Start menu or your shortcut.
 
-> **Note:** Releases up to v1.0.1 use the old product name in the file names. The new `NumCals-Setup.exe` only shows up once the next release is published.
+> **Note:** v1.0.1 uses the old SysCalculator filenames. The v1.0.2 release includes `NumCals-Setup.exe`.
 
 ### Install with the portable ZIP
 
@@ -123,12 +123,10 @@ script, then runs it. The script then downloads and verifies the setup `.exe` be
 so no separate setup checksum command is needed. It uses PowerShell prompts; it does **not** open
 the graphical setup wizard.
 
-> **Heads up:** The script link uses GitHub's `/releases/latest`, which skips anything marked as a
-> pre-release. Until the new release is published, it still points at the existing release,
-> not the upcoming NumCals installer. GitHub goes by each release's prerelease setting, not its
-> title, so this might not match the Stable/Beta labels above. If you want a specific version,
-> download the `.exe` you want from the [releases page](https://github.com/Tenqo/NumCals/releases)
-> and install it with the [setup wizard](#install-with-the-setup-wizard).
+> **Heads up:** The script link uses GitHub's `/releases/latest`, which selects the latest
+> non-prerelease release. It now points to v1.0.2. To install a prerelease, download its setup
+> `.exe` from the [releases page](https://github.com/Tenqo/NumCals/releases) and use the
+> [setup wizard](#install-with-the-setup-wizard).
 
 Copy this single line into PowerShell. It verifies the downloaded script, then the installer
 verifies the setup `.exe` before running it:
@@ -157,23 +155,13 @@ The two hashes should match exactly. If they don't, don't run the file.
 
 </details>
 
-> **Note:** The public v1.0.0 and v1.0.1 releases don't have checksums. The current test
-> build does.
-
-<details>
-<summary><b>For testers: v1.0.2 Beta (unreleased)</b></summary>
-
-<br>
-
-[Open the Windows test run](https://github.com/Tenqo/NumCals/actions/runs/43652142483)
-to grab the setup and portable files. You need a GitHub login, and the files
-expire after seven days.
-
-</details>
+> **Note:** The v1.0.2 release includes checksums for its setup, portable ZIP, and PowerShell
+> installer. The older v1.0.0 and v1.0.1 releases do not.
 
 ### Update or uninstall NumCals
 
-After installing a newer release, open a new PowerShell window. The v1.0.1 release did not register a PowerShell command.
+After installing v1.0.2, open a new PowerShell window to use the registered `NumCals` command.
+The older v1.0.1 release did not register a PowerShell command.
 
 Copy and run the command you need:
 
@@ -246,8 +234,8 @@ Pull requests are welcome. Before you open one, run `flutter analyze` and `flutt
 
 | Status | Version | Notes |
 | --- | --- | --- |
-| <img src="https://img.shields.io/badge/Unreleased-E0565B?style=flat" alt="Unreleased"> | [v1.0.2 Beta](https://github.com/Tenqo/NumCals/actions/runs/43652142483) | Windows_Tests build, workflow passed. AGPL-3.0 |
-| <img src="https://img.shields.io/badge/Beta-F4B942?style=flat" alt="Beta"> | [v1.0.1 Beta](https://github.com/Tenqo/NumCals/releases/tag/v1.0.1) | Published before the rename. GPL-3.0 |
+| <img src="https://img.shields.io/badge/Stable-2EA043?style=flat" alt="Stable"> | [v1.0.2](https://github.com/Tenqo/NumCals/releases/tag/v1.0.2) | Latest release; NumCals-branded assets and checksums. AGPL-3.0 |
+| <img src="https://img.shields.io/badge/Legacy-F4B942?style=flat" alt="Legacy"> | [v1.0.1](https://github.com/Tenqo/NumCals/releases/tag/v1.0.1) | Published before the rename. GPL-3.0 |
 | <img src="https://img.shields.io/badge/Stable-2EA043?style=flat" alt="Stable"> | [v1.0.0 Stable](https://github.com/Tenqo/NumCals/releases/tag/v1.0.0) | GPL-3.0 |
 
 ---
@@ -467,7 +455,7 @@ public issue, post it on social media, or share details anywhere public.
 
 ## License
 
-The unreleased **v1.0.2 Beta** uses the
+The **v1.0.2** release and current source use the
 [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
 
 Published releases up to and including **v1.0.1** stay under the
