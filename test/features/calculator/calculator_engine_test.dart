@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:numcals/calculator/calculator_engine.dart';
+import 'package:numcals/features/calculator/calculator_engine.dart';
 
 void main() {
   const engine = CalculatorEngine();
@@ -12,6 +12,8 @@ void main() {
 
   test('supports powers and scientific functions', () {
     expect(engine.evaluate('2^3^2'), 512);
+    expect(engine.evaluate('-2^2'), -4);
+    expect(engine.evaluate('2^-2'), 0.25);
     expect(engine.evaluate('sqrt(81)+sin(30)'), closeTo(9.5, 1e-10));
     expect(engine.evaluate('log(1000)'), closeTo(3, 1e-10));
     expect(engine.evaluate('ln(e)'), closeTo(1, 1e-10));
@@ -39,5 +41,32 @@ void main() {
     expect(() => engine.evaluate('1÷0'), throwsFormatException);
     expect(() => engine.evaluate('(-1)!'), throwsFormatException);
     expect(() => engine.evaluate('(2+3'), throwsFormatException);
+    expect(() => engine.evaluate('1**2'), throwsFormatException);
+    expect(() => engine.evaluate('sin()'), throwsFormatException);
+  });
+
+  test('bounds factorials and rejects non-finite intermediate results', () {
+    expect(engine.evaluate('0!'), 1);
+    expect(engine.evaluate('170!').isFinite, isTrue);
+    expect(() => engine.evaluate('171!'), throwsFormatException);
+    expect(() => engine.evaluate('1e999'), throwsFormatException);
+    expect(() => engine.evaluate('10^400'), throwsFormatException);
+    expect(() => engine.evaluate('sqrt(-1)'), throwsFormatException);
+    expect(() => engine.evaluate('ln(0)'), throwsFormatException);
+  });
+
+  test('bounds expression length and recursive nesting', () {
+    final longExpression = List<String>.filled(
+      CalculatorEngine.maxExpressionLength + 1,
+      '1',
+    ).join();
+    final nestedExpression =
+        '${List<String>.filled(65, '(').join()}1'
+        '${List<String>.filled(65, ')').join()}';
+    final longPowerChain = List<String>.filled(66, '2').join('^');
+
+    expect(() => engine.evaluate(longExpression), throwsFormatException);
+    expect(() => engine.evaluate(nestedExpression), throwsFormatException);
+    expect(() => engine.evaluate(longPowerChain), throwsFormatException);
   });
 }

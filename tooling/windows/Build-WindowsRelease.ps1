@@ -2,18 +2,159 @@ param(
     [string]$SigningCertificateBase64 = $env:WINDOWS_SIGNING_CERTIFICATE_PFX,
     [System.Security.SecureString]$SigningCertificatePassword,
     [string]$TimestampServer = 'https://timestamp.digicert.com',
+    [string]$OutputDirectory = 'dist',
+    [switch]$InstallerScriptOnly,
     [switch]$SelfTest
 )
 
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+function Resolve-ReleaseOutputDirectory {
+    param([string]$Directory)
+
+    if ([string]::IsNullOrWhiteSpace($Directory) -or
+        [System.IO.Path]::IsPathRooted($Directory)) {
+        throw 'The output directory must be a relative path inside the project.'
+    }
+
+    $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Directory))
+    $projectRootPrefix = $projectRoot.TrimEnd([char[]]@('\', '/')) + '\'
+    if (-not $resolvedPath.StartsWith(
+            $projectRootPrefix,
+            [System.StringComparison]::OrdinalIgnoreCase
+        )) {
+        throw 'The output directory must remain inside the project.'
+    }
+    return $resolvedPath
+}
+
 $releasePath = Join-Path $projectRoot 'build\windows\x64\runner\Release'
-$outputPath = Join-Path $projectRoot 'dist'
+$outputPath = Resolve-ReleaseOutputDirectory -Directory $OutputDirectory
 $portablePath = Join-Path $outputPath 'NumCals-portable.zip'
 $installerScript = Join-Path $projectRoot 'packaging\windows\NumCals-Setup.iss'
-$releaseInstallScript = Join-Path $PSScriptRoot 'Install-LatestRelease.ps1'
+$releaseInstallScript = Join-Path $PSScriptRoot 'installer\Install-LatestRelease.ps1'
+$installerModuleDirectory = Join-Path $PSScriptRoot 'installer'
 $checksumsPath = Join-Path $outputPath 'SHA256SUMS.txt'
+
+function New-StandaloneInstaller {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    if (Test-Path -LiteralPath $Destination) {
+        throw "Refusing to overwrite an existing standalone installer: $Destination"
+    }
+
+    $templateLines = [System.IO.File]::ReadAllLines($releaseInstallScript)
+    $startIndexes = @(
+        for ($index = 0; $index -lt $templateLines.Count; $index++) {
+            if ($templateLines[$index] -ceq '# BEGIN INSTALLER MODULES') { $index }
+        }
+    )
+    $endIndexes = @(
+        for ($index = 0; $index -lt $templateLines.Count; $index++) {
+            if ($templateLines[$index] -ceq '# END INSTALLER MODULES') { $index }
+        }
+    )
+    if ($startIndexes.Count -ne 1 -or $endIndexes.Count -ne 1 -or
+        $startIndexes[0] -ge $endIndexes[0]) {
+        throw 'The installer source must contain one correctly ordered module marker pair.'
+    }
+
+    $moduleNames = @()
+    for ($index = $startIndexes[0] + 1; $index -lt $endIndexes[0]; $index++) {
+        $line = $templateLines[$index]
+        if ($line -notmatch "^\s*\.\s*\(Join-Path \`$PSScriptRoot '([A-Za-z0-9_.-]+\.ps1)'\)\s*$") {
+            throw "Unexpected installer module declaration: $line"
+        }
+        $moduleNames += $Matches[1]
+    }
+    if ($moduleNames.Count -eq 0 -or
+        @($moduleNames | Select-Object -Unique).Count -ne $moduleNames.Count) {
+        throw 'The installer source must list each source module exactly once.'
+    }
+
+    $bundle = New-Object System.Text.StringBuilder
+    for ($index = 0; $index -lt $startIndexes[0]; $index++) {
+        [void]$bundle.AppendLine($templateLines[$index])
+    }
+    $sourceFunctionNames = @()
+    foreach ($moduleName in $moduleNames) {
+        $modulePath = Join-Path $installerModuleDirectory $moduleName
+        if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
+            throw "Installer source module is missing: $modulePath"
+        }
+
+        $moduleContent = [System.IO.File]::ReadAllText($modulePath)
+        [void]$bundle.Append($moduleContent)
+        if (-not $moduleContent.EndsWith("`n")) {
+            [void]$bundle.AppendLine()
+        }
+
+        $moduleTokens = $null
+        $moduleErrors = $null
+        $moduleAst = [System.Management.Automation.Language.Parser]::ParseFile(
+            $modulePath,
+            [ref]$moduleTokens,
+            [ref]$moduleErrors
+        )
+        if ($moduleErrors.Count -gt 0) {
+            throw "Installer source module does not parse: $moduleName"
+        }
+        $sourceFunctionNames += @(
+            $moduleAst.FindAll({
+                param($node)
+                $node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+            }, $true) | ForEach-Object { $_.Name }
+        )
+    }
+    for ($index = $endIndexes[0] + 1; $index -lt $templateLines.Count; $index++) {
+        [void]$bundle.AppendLine($templateLines[$index])
+    }
+
+    $bundleContent = $bundle.ToString()
+    $encoding = New-Object System.Text.UTF8Encoding($true)
+    [System.IO.File]::WriteAllText($Destination, $bundleContent, $encoding)
+
+    try {
+        $bundleTokens = $null
+        $bundleErrors = $null
+        $bundleAst = [System.Management.Automation.Language.Parser]::ParseFile(
+            $Destination,
+            [ref]$bundleTokens,
+            [ref]$bundleErrors
+        )
+        if ($bundleErrors.Count -gt 0) {
+            throw 'The generated standalone installer does not parse.'
+        }
+
+        $bundleFunctionNames = @(
+            $bundleAst.FindAll({
+                param($node)
+                $node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+            }, $true) | ForEach-Object { $_.Name }
+        )
+        $expectedNames = @($sourceFunctionNames | Sort-Object)
+        $actualNames = @($bundleFunctionNames | Sort-Object)
+        if (($expectedNames -join '|') -cne ($actualNames -join '|')) {
+            throw 'The generated installer does not contain every source function exactly once.'
+        }
+        if ($bundleContent -match "(?m)^\s*\.\s*\(Join-Path \`$PSScriptRoot ") {
+            throw 'The generated installer still depends on source modules.'
+        }
+
+        $powershell = Get-Command powershell.exe -ErrorAction Stop
+        $quotedDestination = '"' + $Destination.Replace('"', '""') + '"'
+        $arguments = "-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -File $quotedDestination -Action help"
+        $process = Start-Process -FilePath $powershell.Source -ArgumentList $arguments `
+            -WindowStyle Hidden -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "The generated standalone installer smoke test failed with exit code $($process.ExitCode)."
+        }
+    } catch {
+        Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+        throw
+    }
+}
 
 function Get-SignToolPath {
     $kitsDirectory = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
@@ -83,6 +224,41 @@ function New-Sha256Manifest {
     )
 }
 
+function Test-Sha256Manifest {
+    param(
+        [string[]]$AssetPaths,
+        [string]$ManifestPath
+    )
+
+    $lines = @(Get-Content -LiteralPath $ManifestPath)
+    if ($lines.Count -ne $AssetPaths.Count) {
+        throw 'The checksum manifest contains an unexpected number of assets.'
+    }
+
+    foreach ($assetPath in $AssetPaths) {
+        if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+            throw "Release asset is missing: $assetPath"
+        }
+
+        $name = [System.IO.Path]::GetFileName($assetPath)
+        $matchingLines = @(
+            $lines | Where-Object { $_ -match "\s+$([regex]::Escape($name))$" }
+        )
+        if ($matchingLines.Count -ne 1 -or
+            $matchingLines[0] -notmatch '^([a-fA-F0-9]{64})\s+(.+)$') {
+            throw "The checksum manifest has no unique, valid entry for $name."
+        }
+        if ($Matches[2] -cne $name) {
+            throw "The checksum manifest contains an invalid asset name for $name."
+        }
+
+        $actualHash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash
+        if ($actualHash -ine $Matches[1]) {
+            throw "Checksum verification failed for $name."
+        }
+    }
+}
+
 function Invoke-BuildScriptSelfTest {
     $testDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
         "NumCals-ReleaseSelfTest-$([guid]::NewGuid().ToString('N'))"
@@ -111,6 +287,17 @@ function Invoke-BuildScriptSelfTest {
             }
         }
 
+        [System.IO.File]::AppendAllText($assetOne, ' altered')
+        $modifiedAssetRejected = $false
+        try {
+            Test-Sha256Manifest -AssetPaths @($assetOne, $assetTwo) -ManifestPath $manifest
+        } catch {
+            $modifiedAssetRejected = $_.Exception.Message -like '*Checksum verification failed*'
+        }
+        if (-not $modifiedAssetRejected) {
+            throw 'Checksum verification did not reject a modified release asset.'
+        }
+
         $overwriteRejected = $false
         try {
             New-Sha256Manifest -AssetPaths @($assetOne) -Destination $manifest
@@ -119,6 +306,12 @@ function Invoke-BuildScriptSelfTest {
         }
         if (-not $overwriteRejected) {
             throw 'Checksum generation did not refuse to overwrite an existing manifest.'
+        }
+
+        $standaloneInstaller = Join-Path $testDirectory 'Install-LatestRelease.ps1'
+        New-StandaloneInstaller -Destination $standaloneInstaller
+        if (-not (Test-Path -LiteralPath $standaloneInstaller -PathType Leaf)) {
+            throw 'The standalone installer self-test did not create its output.'
         }
 
         $originalCertificateBase64 = $SigningCertificateBase64
@@ -174,7 +367,22 @@ function Invoke-BuildScriptSelfTest {
             )
         }
 
-        Write-Host 'Release build self-tests passed: SHA-256 manifest generation and overwrite protection.'
+        $defaultOutputPath = Resolve-ReleaseOutputDirectory -Directory 'dist'
+        if ($defaultOutputPath -ne [System.IO.Path]::GetFullPath((Join-Path $projectRoot 'dist'))) {
+            throw 'The default release output directory self-test failed.'
+        }
+
+        $outputPathEscapeRejected = $false
+        try {
+            [void](Resolve-ReleaseOutputDirectory -Directory '..\outside')
+        } catch {
+            $outputPathEscapeRejected = $_.Exception.Message -like '*inside the project*'
+        }
+        if (-not $outputPathEscapeRejected) {
+            throw 'Release output directory validation allowed a path outside the project.'
+        }
+
+        Write-Host 'Release build self-tests passed: installer bundling, standalone execution, checksum integrity, overwrite protection, and output-path validation.'
     } finally {
         if (Test-Path -LiteralPath $testDirectory -PathType Container) {
             Remove-Item -LiteralPath $testDirectory -Recurse -Force
@@ -324,8 +532,22 @@ if ($SelfTest) {
     return
 }
 
+if ($InstallerScriptOnly) {
+    if (-not (Test-Path -LiteralPath $outputPath -PathType Container)) {
+        New-Item -ItemType Directory -Path $outputPath | Out-Null
+    }
+
+    $standaloneInstaller = Join-Path $outputPath 'Install-LatestRelease.ps1'
+    New-StandaloneInstaller -Destination $standaloneInstaller
+    Write-Output "Standalone release installer created: $standaloneInstaller"
+    return
+}
+
 Push-Location $projectRoot
 $signing = $null
+$stagingPath = $null
+$publishedOutputs = @()
+$buildSucceeded = $false
 try {
     $expectedOutputs = @(
         (Join-Path $outputPath 'NumCals-Setup.exe'),
@@ -335,12 +557,14 @@ try {
     )
     $existingOutputs = @($expectedOutputs | Where-Object { Test-Path -LiteralPath $_ })
     if ($existingOutputs.Count -gt 0) {
-        throw "Refusing to overwrite existing release output(s): $($existingOutputs -join ', '). Move them out of dist before building."
+        throw "Refusing to overwrite existing release output(s): $($existingOutputs -join ', '). Choose an empty output directory or move them out before building."
     }
 
     $compilerCommand = Get-Command ISCC.exe -ErrorAction SilentlyContinue
     if ($null -eq $compilerCommand) {
         $innoSetupPaths = @(
+            (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe'),
+            (Join-Path $env:LOCALAPPDATA 'Inno Setup 6\ISCC.exe'),
             (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
             (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')
         )
@@ -362,9 +586,9 @@ try {
 
     $signing = Initialize-ReleaseSigning
 
-    flutter pub get
+    flutter pub get --enforce-lockfile
     if ($LASTEXITCODE -ne 0) {
-        throw 'flutter pub get failed.'
+        throw 'flutter pub get --enforce-lockfile failed.'
     }
 
     flutter build windows --release
@@ -390,21 +614,26 @@ try {
     }
 
     New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
-    Compress-Archive -Path (Join-Path $releasePath '*') -DestinationPath $portablePath
+    $stagingPath = Join-Path $outputPath `
+        ".NumCals-Release-$([guid]::NewGuid().ToString('N'))"
+    New-Item -ItemType Directory -Path $stagingPath | Out-Null
+
+    Compress-Archive -Path (Join-Path $releasePath '*') `
+        -DestinationPath (Join-Path $stagingPath 'NumCals-portable.zip')
 
     $compilerArguments = @(
         "/DAppSource=$releasePath",
         "/DAppVersion=$version",
-        "/O$outputPath",
+        "/O$stagingPath",
         '/FNumCals-Setup',
         $installerScript
     )
     & $compilerPath @compilerArguments
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $outputPath 'NumCals-Setup.exe') -PathType Leaf)) {
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $stagingPath 'NumCals-Setup.exe') -PathType Leaf)) {
         throw 'Inno Setup could not create the Windows setup executable.'
     }
 
-    $setupExecutable = Join-Path $outputPath 'NumCals-Setup.exe'
+    $setupExecutable = Join-Path $stagingPath 'NumCals-Setup.exe'
     if ($signing) {
         Invoke-AuthenticodeSigning -SignTool $signing.SignTool `
             -Thumbprint $signing.Certificate.Thumbprint `
@@ -412,13 +641,39 @@ try {
             -TimestampUrl $signing.TimestampUrl
     }
 
-    Copy-Item -LiteralPath $releaseInstallScript -Destination $outputPath
+    $stagedInstallScript = Join-Path $stagingPath 'Install-LatestRelease.ps1'
+    New-StandaloneInstaller -Destination $stagedInstallScript
 
+    $stagedPortable = Join-Path $stagingPath 'NumCals-portable.zip'
+    $stagedChecksums = Join-Path $stagingPath 'SHA256SUMS.txt'
     New-Sha256Manifest -AssetPaths @(
         $setupExecutable,
+        $stagedPortable,
+        $stagedInstallScript
+    ) -Destination $stagedChecksums
+    Test-Sha256Manifest -AssetPaths @(
+        $setupExecutable,
+        $stagedPortable,
+        $stagedInstallScript
+    ) -ManifestPath $stagedChecksums
+
+    $outputsToPublish = @(
+        @{ Source = $setupExecutable; Destination = (Join-Path $outputPath 'NumCals-Setup.exe') },
+        @{ Source = $stagedPortable; Destination = $portablePath },
+        @{ Source = $stagedInstallScript; Destination = (Join-Path $outputPath 'Install-LatestRelease.ps1') },
+        @{ Source = $stagedChecksums; Destination = $checksumsPath }
+    )
+    foreach ($output in $outputsToPublish) {
+        Move-Item -LiteralPath $output.Source -Destination $output.Destination
+        $publishedOutputs += $output.Destination
+    }
+
+    Test-Sha256Manifest -AssetPaths @(
+        (Join-Path $outputPath 'NumCals-Setup.exe'),
         $portablePath,
         (Join-Path $outputPath 'Install-LatestRelease.ps1')
-    ) -Destination $checksumsPath
+    ) -ManifestPath $checksumsPath
+    $buildSucceeded = $true
 
     Write-Output "Windows setup created: $(Join-Path $outputPath 'NumCals-Setup.exe')"
     Write-Output "Portable app created: $portablePath"
@@ -429,6 +684,16 @@ try {
     }
 }
 finally {
+    if (-not $buildSucceeded) {
+        foreach ($publishedOutput in $publishedOutputs) {
+            if (Test-Path -LiteralPath $publishedOutput -PathType Leaf) {
+                Remove-Item -LiteralPath $publishedOutput -Force
+            }
+        }
+    }
+    if ($stagingPath -and (Test-Path -LiteralPath $stagingPath -PathType Container)) {
+        Remove-Item -LiteralPath $stagingPath -Recurse -Force
+    }
     if ($signing) {
         foreach ($thumbprint in $signing.ImportedThumbprints) {
             Remove-Item -LiteralPath "Cert:\CurrentUser\My\$thumbprint" `

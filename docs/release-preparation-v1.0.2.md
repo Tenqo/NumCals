@@ -39,8 +39,8 @@ Windows packaging and disposable-VM testing are completed.
 The GitHub Actions workflow does not receive a signing certificate or password;
 its Windows executables are unsigned. The local build helper retains optional
 PFX signing support for an explicitly configured local build, but that path is
-not enabled or tested here. Self-signing is independent of the GPL-3.0 source
-license and does not make a publisher trusted by Windows automatically.
+not enabled or tested here. Self-signing does not change the license assigned to
+a version or make a publisher trusted by Windows automatically.
 
 If you self-sign locally after packaging, regenerate `SHA256SUMS.txt` after
 signing so it covers the exact files being distributed. Never commit the
@@ -65,7 +65,7 @@ application build succeeded; no v1.0.2 executable has been signed.
 
 ### Successfully executed
 
-- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tooling\windows\Install-LatestRelease.ps1 -SelfTest`
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tooling\windows\Build-WindowsRelease.ps1 -SelfTest`
   passed, including mocked download integrity/failure cases, retained
   diagnostics, and an isolated `NumCals.cmd help` launcher round trip.
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tooling\windows\Build-WindowsRelease.ps1 -SelfTest`
