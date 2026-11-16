@@ -1,26 +1,20 @@
-NumCals is a keyboard-friendly Windows calculator with standard,
-scientific, and currency conversion modes.
+## What's new
 
-## Install
+- Refreshed the Windows distribution for NumCals v1.0.2.
+- This replaces the earlier v1.0.2 package assets; the application version and
+  features are unchanged from the original release.
+- NumCals provides standard, scientific, and currency calculations, plus the
+  PowerShell `help`, `update`, `upgrade`, and `remove` commands.
 
-- **Setup wizard:** Download `NumCals-Setup.exe` and run it. The
-  graphical installation media lets you choose the folder and shortcut.
-- **Portable:** Download `NumCals-portable.zip`, extract it, and run
-  `NumCals.exe`. Keep the extracted folder together.
+## Where to find it
 
-## PowerShell-only installation
+The release assets are listed below: `NumCals-Setup.exe`,
+`NumCals-portable.zip`, `Install-LatestRelease.ps1`, and `SHA256SUMS.txt`.
 
-Use the separate PowerShell installer to install entirely from the console.
-It asks for the install folder and shortcut preference and does not open the
-graphical installation media.
+## How it works
 
-```powershell
-$repo = 'Tenqo/NumCals'
-$installer = Join-Path $env:TEMP 'Install-LatestRelease.ps1'
-Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest/download/Install-LatestRelease.ps1" -OutFile $installer
-powershell -NoProfile -ExecutionPolicy Bypass -File $installer -Repository $repo
-```
-
-The installer verifies the download, supports retrying a failed install, and
-stays open for update, upgrade, and reinstall commands. For more details,
-return to the [main repository README](https://github.com/Tenqo/NumCals#download).
+`NumCals update` compares the installed version with the latest release and
+downloads only when a newer version is available. `upgrade` reinstalls the
+current release, while `remove` asks for confirmation before uninstalling.
+The PowerShell release script validates the download over HTTPS using its
+published size and SHA-256 digest before launching the setup executable.

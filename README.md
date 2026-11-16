@@ -4,8 +4,8 @@
 <p align="center"><b>A keyboard-friendly Windows calculator for everyday math, science, and currency conversion.</b></p>
 
 <p align="center">
-  <a href="https://github.com/Tenqo/NumCals/releases/latest"><img src="https://img.shields.io/badge/Stable-v1.0.2-806BFF?style=flat&amp;labelColor=252A36" height="24" alt="Latest stable release v1.0.2"></a>
-  <a href="https://github.com/Tenqo/NumCals/releases"><img src="https://img.shields.io/badge/Latest-v1.0.2-F4B942?style=flat&amp;labelColor=252A36" height="24" alt="Latest release v1.0.2"></a>
+  <a href="https://github.com/Tenqo/NumCals/releases/latest"><img src="https://img.shields.io/github/v/release/Tenqo/NumCals?style=flat&amp;label=Stable&amp;color=806BFF&amp;labelColor=252A36&amp;cacheSeconds=300" height="24" alt="Latest stable release"></a>
+  <a href="https://github.com/Tenqo/NumCals/releases"><img src="https://img.shields.io/github/v/release/Tenqo/NumCals?include_prereleases&amp;style=flat&amp;label=Latest&amp;color=F4B942&amp;labelColor=252A36&amp;cacheSeconds=300" height="24" alt="Latest release including prereleases"></a>
   <a href="https://github.com/Tenqo/NumCals/releases"><img src="https://img.shields.io/github/downloads/Tenqo/NumCals/total?style=flat&amp;label=Downloads&amp;color=35C9A5&amp;labelColor=252A36" height="24" alt="Total downloads"></a>
   <a href="https://github.com/Tenqo/NumCals/stargazers"><img src="https://img.shields.io/github/stars/Tenqo/NumCals?style=flat&amp;label=Stars&amp;color=F4B942&amp;labelColor=252A36&amp;logo=github&amp;logoColor=white" height="24" alt="GitHub stars"></a>
 </p>
@@ -43,9 +43,6 @@ The built-in Windows Calculator is fine. NumCals is for when you want more:
 - **Science tools built in.** Trig, logs, roots, factorials, and more.
 - **Currency conversion** without opening a browser tab.
 - **History and copy.** Grab your last ten results from the session.
-
-<!-- TODO: add a screenshot or short GIF here, e.g. <p align="center"><img src="docs/screenshot.png" width="600" alt="NumCals screenshot"></p>
-     A picture near the top is the single best way to get people to try it. -->
 
 ### How to use it
 
@@ -99,8 +96,6 @@ Pick a method below, or build it yourself.
 4. Pick your install folder and whether you want a shortcut.
 5. Open NumCals from the Start menu or your shortcut.
 
-> **Note:** v1.0.1 uses the old SysCalculator filenames. The v1.0.2 release includes `NumCals-Setup.exe`.
-
 ### Install with the portable ZIP
 
 1. Download the portable `.zip` and `SHA256SUMS.txt` from the [latest release](https://github.com/Tenqo/NumCals/releases/latest).
@@ -124,8 +119,8 @@ so no separate setup checksum command is needed. It uses PowerShell prompts; it 
 the graphical setup wizard.
 
 > **Heads up:** The script link uses GitHub's `/releases/latest`, which selects the latest
-> non-prerelease release. It now points to v1.0.2. To install a prerelease, download its setup
-> `.exe` from the [releases page](https://github.com/Tenqo/NumCals/releases) and use the
+> non-prerelease release. To install a prerelease, download its setup `.exe` from the
+> [releases page](https://github.com/Tenqo/NumCals/releases) and use the
 > [setup wizard](#install-with-the-setup-wizard).
 
 Copy this single line into PowerShell. It verifies the downloaded script, then the installer

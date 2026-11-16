@@ -1,11 +1,13 @@
 # NumCals 1.0.2 release preparation
 
-**Status:** NumCals 1.0.2+3 is a Windows_Tests test candidate. Its branch
-workflow will build and upload a seven-day artifact; no tag or GitHub Release
-is being created.
+**Status:** Historical pre-release preparation snapshot. NumCals v1.0.2 was
+later published from the tested `Windows_Tests` commit:
+[release page](https://github.com/Tenqo/NumCals/releases/tag/v1.0.2).
+Pre-publication status and checklists below describe the state at preparation
+time, not the current release status.
 
-**Readiness:** 6/10 — suitable for human review, not ready to publish until
-Windows packaging and disposable-VM testing are completed.
+**Pre-publication readiness:** 6/10 — suitable for human review, pending
+Windows packaging and disposable-VM testing at the time of this assessment.
 
 ## Changes from v1.0.1
 
@@ -109,13 +111,9 @@ application build succeeded; no v1.0.2 executable has been signed.
 
 ### Not performed
 
-- The Windows_Tests workflow is the end-to-end check for the updated installer,
-  package output, checksums, and artifact upload; it does not create a release.
-- During the host-test attempt, `flutter pub get` and `flutter --version`
-  stalled without output. Inspection then hit a sandbox access denial for
-  `C:\src\flutter\packages\flutter_tools\.dart_tool\package_config.json` and
-  the Flutter SDK repository. Flutter analysis, tests, and packaging therefore
-  remain blocked until the sandbox permits access to `C:\src\flutter`.
+- The Windows_Tests workflow and tagged release workflow later passed their
+  automated checks, built Windows packages, verified checksums, and published
+  v1.0.2.
 - No graphical setup, PowerShell installation, update, upgrade, uninstall,
   shortcut, failure-recovery, non-admin, or custom-path installation was run.
 - No signing was tested because credentials are unavailable.
@@ -124,8 +122,8 @@ application build succeeded; no v1.0.2 executable has been signed.
 
 ## Known limitations and risks
 
-- The workspace changes remain uncommitted; release users will not receive
-  them until reviewed, committed, and included in a new tag.
+- The v1.0.2 release was published from the tested tag; the original
+  uncommitted-workspace warning is historical and no longer applies.
 - GitHub Actions produces unsigned EXEs. SHA-256 verifies file consistency, not
   publisher identity; self-signed certificates are not automatically trusted
   by Windows.
@@ -136,25 +134,19 @@ application build succeeded; no v1.0.2 executable has been signed.
   installer rather than guessing an install location.
 - GUI behavior and installer side effects still require disposable-VM tests.
 
-## Remaining manual steps before publishing
+## Manual follow-up
 
-1. Review the installer, workflow, and release-note changes; confirm the
-   `1.0.2+3` version/build number.
-2. Self-sign binaries locally if desired, then regenerate the checksum manifest
-   and verify the exact assets before distribution.
-3. Run the tests and full Windows build below on a supported Windows machine.
-   Verify signatures when signing is enabled and compare every generated
-   checksum.
-4. Test setup, update, repair/reinstall, and uninstall in disposable Windows
+1. If signing is configured in a future build, verify the signature and
+   regenerate the checksum manifest after signing.
+2. Test setup, update, repair/reinstall, and uninstall in disposable Windows
    10/11 VMs, including a non-admin account, Unicode/spaced custom paths, and
-   failed downloads. Do not use the primary installation for these tests.
-5. Review the draft release notes and generated assets before creating or
-   pushing the v1.0.2 tag. This preparation does not create that tag.
+   failed downloads. Do not use a primary installation for these tests.
+3. ARM64 runtime behavior has not been tested; x86 Windows is deliberately
+   rejected.
 
-## Recommended release notes
+## Release notes
 
-The current `.github/release-notes.md` contains the proposed v1.0.2 notes.
-Confirm all listed behavior against the final tagged build before release.
+The `.github/release-notes.md` file was used for the published v1.0.2 release.
 
 ## Commands for the next release candidate
 
@@ -167,8 +159,9 @@ flutter test
 .\tooling\windows\Build-WindowsRelease.ps1
 ```
 
-The build requires Flutter stable, the Visual Studio Desktop development with
-C++ workload, and Inno Setup 6. If `dist` already contains any release output,
+The build requires the Flutter SDK version listed in `pubspec.yaml`, the Visual
+Studio Desktop development with C++ workload, and Inno Setup 6. If `dist`
+already contains any release output,
 move those files elsewhere before building; the script intentionally refuses
-to overwrite them. For the hosted release, push a reviewed `v1.0.2` tag only
-after the manual VM checks are complete.
+to overwrite them. For a hosted release, push a reviewed version tag matching
+`pubspec.yaml` only after the required checks are complete.

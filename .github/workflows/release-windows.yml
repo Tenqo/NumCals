@@ -213,7 +213,24 @@ jobs:
             '.github/release-notes.md',
             '--verify-tag'
           )
-          gh release create @releaseArguments
-          if ($LASTEXITCODE -ne 0) {
-            throw "Could not publish release $tag."
+          if ($tag -eq 'v1.0.2') {
+            # v1.0.2 was already published; this owner-approved run replaces its assets.
+            $uploadArguments = @($tag) + $assets + @('--clobber')
+            gh release upload @uploadArguments
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not replace the v1.0.2 release assets."
+            }
+
+            gh release edit $tag `
+              --title "NumCals $displayVersion" `
+              --notes-file '.github/release-notes.md'
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not update the v1.0.2 release description."
+            }
+          }
+          else {
+            gh release create @releaseArguments
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not publish release $tag."
+            }
           }
