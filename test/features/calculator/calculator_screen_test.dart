@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:sys_calculator/currency_service.dart';
-import 'package:sys_calculator/main.dart';
+import 'package:numcals/features/calculator/calculator_engine.dart';
+import 'package:numcals/features/currency/currency_service.dart';
+import 'package:numcals/app/app.dart';
 
 void main() {
   Future<void> tapKeys(WidgetTester tester, List<String> keys) async {
@@ -110,6 +111,27 @@ void main() {
     expect(_display(tester), '0');
   });
 
+  testWidgets('rejects overlong input and recovers on the next key', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CalculatorApp());
+
+    for (
+      var index = 0;
+      index <= CalculatorEngine.maxExpressionLength;
+      index++
+    ) {
+      await tester.tap(find.text('1').last);
+      await tester.pump();
+    }
+
+    expect(_display(tester), 'Error');
+
+    await tester.tap(find.text('2').last);
+    await tester.pump();
+    expect(_display(tester), '2');
+  });
+
   testWidgets('shows an error when dividing by zero', (tester) async {
     await tester.pumpWidget(const CalculatorApp());
 
@@ -201,6 +223,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('shows an error when currency conversion overflows', (
+    tester,
+  ) async {
+    final service = _FakeCurrencyService()..conversionRate = double.maxFinite;
+    await tester.pumpWidget(CalculatorApp(currencyService: service));
+    await tester.tap(find.byTooltip('Choose calculator mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Currency converter'));
+    await tester.pumpAndSettle();
+
+    await tapKeys(tester, ['2', '=']);
+
+    expect(_display(tester), 'Error');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('currency pair can be changed from the dropdown', (tester) async {
     final service = _FakeCurrencyService();
     await tester.pumpWidget(CalculatorApp(currencyService: service));
@@ -223,7 +261,7 @@ void main() {
 
   testWidgets('Frankfurter source link opens its website', (tester) async {
     final calls = <MethodCall>[];
-    const channel = MethodChannel('syscalculator/window');
+    const channel = MethodChannel('numcals/window');
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -270,6 +308,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_display(tester), '12');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('recent calculations can be cleared', (tester) async {
+    await tester.pumpWidget(const CalculatorApp());
+
+    await tapKeys(tester, ['8', '+', '4', '=']);
+    await tester.tap(find.byTooltip('Recent calculations'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Clear history'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Your recent calculations will appear here.'),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Clear history'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -360,7 +415,7 @@ void main() {
     tester,
   ) async {
     final calls = <MethodCall>[];
-    const channel = MethodChannel('syscalculator/window');
+    const channel = MethodChannel('numcals/window');
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -399,7 +454,7 @@ void main() {
     'settings diagnostics check the calculator and currency service',
     (tester) async {
       final calls = <MethodCall>[];
-      const channel = MethodChannel('syscalculator/window');
+      const channel = MethodChannel('numcals/window');
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       messenger.setMockMethodCallHandler(channel, (call) async {
@@ -455,6 +510,7 @@ void main() {
 
 class _FakeCurrencyService extends CurrencyService {
   Object? rateError;
+  double conversionRate = 0.9;
 
   @override
   Future<List<CurrencyInfo>> fetchCurrencies() async => const [
@@ -473,7 +529,7 @@ class _FakeCurrencyService extends CurrencyService {
     final error = rateError;
     if (error != null) throw error;
     return ExchangeRate(
-      rate: base == 'CAD' ? 1.25 : 0.9,
+      rate: base == 'CAD' ? 1.25 : conversionRate,
       date: DateTime.utc(2026, 11, 12),
     );
   }

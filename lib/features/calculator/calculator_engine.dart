@@ -1,9 +1,14 @@
 import 'dart:math' as math;
 
 class CalculatorEngine {
+  static const maxExpressionLength = 256;
+
   const CalculatorEngine();
 
   double evaluate(String expression, {bool useDegrees = true}) {
+    if (expression.length > maxExpressionLength) {
+      throw const FormatException('Expression is too long.');
+    }
     final parser = _ExpressionParser(expression, useDegrees);
     final result = parser.parse();
     if (!result.isFinite) {
@@ -19,6 +24,9 @@ class _ExpressionParser {
   final String expression;
   final bool useDegrees;
   int _position = 0;
+  int _nestingDepth = 0;
+
+  static const _maxNestingDepth = 64;
 
   double parse() {
     final result = _parseExpression();
@@ -58,15 +66,30 @@ class _ExpressionParser {
   }
 
   double _parseUnary() {
-    if (_match('+')) return _parseUnary();
-    if (_match('-')) return -_parseUnary();
-    return _parsePower();
+    var negate = false;
+    while (true) {
+      if (_match('+')) {
+        continue;
+      }
+      if (_match('-')) {
+        negate = !negate;
+        continue;
+      }
+      break;
+    }
+    final value = _parsePower();
+    return negate ? -value : value;
   }
 
   double _parsePower() {
     final base = _parsePostfix();
     if (_match('^')) {
-      return math.pow(base, _parseUnary()).toDouble();
+      _enterNesting();
+      try {
+        return math.pow(base, _parseUnary()).toDouble();
+      } finally {
+        _nestingDepth--;
+      }
     }
     return base;
   }
@@ -87,9 +110,7 @@ class _ExpressionParser {
   double _parsePrimary() {
     _skipWhitespace();
     if (_match('(')) {
-      final value = _parseExpression();
-      _expect(')');
-      return value;
+      return _parseNestedExpression();
     }
 
     if (_position < expression.length &&
@@ -102,8 +123,7 @@ class _ExpressionParser {
     if (identifier == 'e') return math.e;
 
     _expect('(');
-    final argument = _parseExpression();
-    _expect(')');
+    final argument = _parseNestedExpression();
     switch (identifier) {
       case 'sin':
         return math.sin(_toRadians(argument));
@@ -142,6 +162,22 @@ class _ExpressionParser {
     if (!foundDigit) {
       throw const FormatException('Enter a valid number.');
     }
+
+    if (_position < expression.length &&
+        (expression[_position] == 'e' || expression[_position] == 'E')) {
+      var exponentEnd = _position + 1;
+      if (exponentEnd < expression.length &&
+          (expression[exponentEnd] == '+' || expression[exponentEnd] == '-')) {
+        exponentEnd++;
+      }
+      final exponentDigitsStart = exponentEnd;
+      while (exponentEnd < expression.length &&
+          _isDigit(expression[exponentEnd])) {
+        exponentEnd++;
+      }
+      if (exponentEnd > exponentDigitsStart) _position = exponentEnd;
+    }
+
     return double.parse(expression.substring(start, _position));
   }
 
@@ -172,6 +208,24 @@ class _ExpressionParser {
       result *= factor;
     }
     return result;
+  }
+
+  double _parseNestedExpression() {
+    _enterNesting();
+    try {
+      final value = _parseExpression();
+      _expect(')');
+      return value;
+    } finally {
+      _nestingDepth--;
+    }
+  }
+
+  void _enterNesting() {
+    if (_nestingDepth >= _maxNestingDepth) {
+      throw const FormatException('Expression nesting is too deep.');
+    }
+    _nestingDepth++;
   }
 
   double _toRadians(double value) {

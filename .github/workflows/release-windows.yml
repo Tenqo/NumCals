@@ -1,45 +1,156 @@
-name: Build and publish SysCalculator Windows release
+name: Build and publish NumCals Windows release
 
 "on":
   push:
     tags:
       - "v*"
-  release:
-    types: [published]
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
     steps:
       - name: Check out release
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: stable
+          flutter-version: 3.50.0
 
       - name: Install Inno Setup
         shell: pwsh
-        run: choco install innosetup --no-progress -y
+        run: choco install innosetup --version=6.7.1 --no-progress -y
+
+      - name: Validate tagged source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF_TYPE -ne 'tag') {
+            throw 'Windows releases must be built from a version tag.'
+          }
+
+          $manifest = Get-Content pubspec.yaml -Raw
+          $versionMatch = [regex]::Match($manifest, '(?m)^version:\s*(\d+\.\d+\.\d+)')
+          if (-not $versionMatch.Success) {
+            throw 'Could not read the app version from pubspec.yaml.'
+          }
+
+          $expectedTag = "v$($versionMatch.Groups[1].Value)"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Release tag $env:GITHUB_REF_NAME does not match app version $expectedTag."
+          }
+
+          $tagCommit = (& git rev-parse --verify "$($env:GITHUB_REF_NAME)^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not resolve release tag $env:GITHUB_REF_NAME."
+          }
+          $checkoutCommit = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $checkoutCommit -ne $tagCommit) {
+            throw 'The checked-out source does not match the release tag commit.'
+          }
+
+      - name: Resolve Flutter dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analyze Flutter application
+        shell: pwsh
+        run: flutter analyze
+
+      - name: Test Flutter application
+        shell: pwsh
+        run: flutter test
 
       - name: Test PowerShell installer
         shell: pwsh
         run: .\test\windows_installer_tests.ps1
 
+      - name: Test release artifact helpers
+        shell: pwsh
+        run: .\tooling\windows\Build-WindowsRelease.ps1 -SelfTest
+
       - name: Build Windows packages
         shell: pwsh
         run: .\tooling\windows\Build-WindowsRelease.ps1
 
-      - name: Create release from version tag
-        if: github.event_name == 'push'
+      - name: Test standalone release installer
+        shell: pwsh
+        run: .\test\windows_installer_tests.ps1 -InstallerPath .\dist\Install-LatestRelease.ps1
+
+      - name: Verify release checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assets = @(
+            'NumCals-Setup.exe',
+            'NumCals-portable.zip',
+            'Install-LatestRelease.ps1'
+          )
+          $manifest = Get-Content .\dist\SHA256SUMS.txt
+          if ($manifest.Count -ne $assets.Count) {
+            throw 'The checksum manifest contains an unexpected number of assets.'
+          }
+          foreach ($name in $assets) {
+            $assetPath = Join-Path .\dist $name
+            if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+              throw "Release asset is missing: $name"
+            }
+            $lines = @($manifest | Where-Object { $_ -match "\s+$([regex]::Escape($name))$" })
+            if ($lines.Count -ne 1) {
+              throw "Checksum manifest must contain exactly one entry for $name."
+            }
+            $expected = ($lines[0] -split '\s+')[0]
+            $actual = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash
+            if ($actual -ine $expected) {
+              throw "Checksum verification failed: $name"
+            }
+          }
+
+      - name: Store release assets for publication
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: numcals-release-assets
+          path: |
+            dist/NumCals-Setup.exe
+            dist/NumCals-portable.zip
+            dist/Install-LatestRelease.ps1
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release notes
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download verified release assets
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: numcals-release-assets
+          path: dist
+
+      - name: Publish release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $ErrorActionPreference = 'Stop'
           $manifest = Get-Content pubspec.yaml -Raw
           $versionMatch = [regex]::Match($manifest, '(?m)^version:\s*(\d+\.\d+\.\d+)')
           if (-not $versionMatch.Success) {
@@ -47,34 +158,62 @@ jobs:
           }
 
           $version = $versionMatch.Groups[1].Value
-          $displayVersion = $version -replace '\.0$', ''
           $tag = $env:GITHUB_REF_NAME
           if ($tag -ne "v$version") {
             throw "Release tag $tag does not match app version v$version."
           }
 
+          $assets = @(
+            '.\dist\NumCals-Setup.exe',
+            '.\dist\NumCals-portable.zip',
+            '.\dist\Install-LatestRelease.ps1',
+            '.\dist\SHA256SUMS.txt'
+          )
+          foreach ($asset in $assets) {
+            if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
+              throw "A verified release asset is missing: $asset"
+            }
+          }
+
+          $checksums = @(Get-Content .\dist\SHA256SUMS.txt)
+          $expectedNames = @(
+            'NumCals-Setup.exe',
+            'NumCals-portable.zip',
+            'Install-LatestRelease.ps1'
+          )
+          if ($checksums.Count -ne $expectedNames.Count) {
+            throw 'The downloaded checksum manifest contains an unexpected number of entries.'
+          }
+          foreach ($name in $expectedNames) {
+            $entries = @(
+              $checksums | Where-Object { $_ -match "\s+$([regex]::Escape($name))$" }
+            )
+            if ($entries.Count -ne 1 -or
+                $entries[0] -notmatch '^([a-fA-F0-9]{64})\s+(.+)$' -or
+                $Matches[2] -cne $name) {
+              throw "The checksum manifest has no unique, valid entry for $name."
+            }
+            $path = Join-Path .\dist $name
+            $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+            if ($actual -ine $Matches[1]) {
+              throw "Checksum verification failed for downloaded asset $name."
+            }
+          }
+
+          $displayVersion = $version -replace '\.0$', ''
           $releaseArguments = @(
             $tag,
-            '.\dist\SysCalculator-Setup.exe',
-            '.\dist\SysCalculator-portable.zip',
+            '.\dist\NumCals-Setup.exe',
+            '.\dist\NumCals-portable.zip',
             '.\dist\Install-LatestRelease.ps1',
+            '.\dist\SHA256SUMS.txt',
             '--title',
-            "SysCalculator $displayVersion",
+            "NumCals $displayVersion",
             '--notes-file',
-            '.github/release-notes.md'
+            '.github/release-notes.md',
+            '--verify-tag'
           )
           gh release create @releaseArguments
           if ($LASTEXITCODE -ne 0) {
             throw "Could not publish release $tag."
-          }
-
-      - name: Upload packages to existing release
-        if: github.event_name == 'release'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "$env:GITHUB_REF_NAME" .\dist\SysCalculator-Setup.exe .\dist\SysCalculator-portable.zip .\dist\Install-LatestRelease.ps1 --clobber
-          if ($LASTEXITCODE -ne 0) {
-            throw "Could not upload packages to release $env:GITHUB_REF_NAME."
           }
